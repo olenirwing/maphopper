@@ -1,7 +1,7 @@
 # maphopper
-maphopper is a tool to use Graphhopper Directions API responses with the Mapbox SDK.
+maphopper is a proxy written in node.js to use Graphhopper Directions API responses with the Mapbox SDK.
 
-A proxy modifies the response you get from the Graphhoppper API and returns a fully functional Mapbox Directions API response in JSON format.
+It modifies the response you get from the Graphhoppper API and returns a fully functional Mapbox Directions API response in JSON format.
 
 <i>available as a <a href="https://hub.docker.com/r/gadda27/maphopper/">Docker container</a> at "gadda27/maphopper".</i>
 
