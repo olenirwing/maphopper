@@ -277,7 +277,7 @@ function getBannerInstructions (instruction) {
   var modifier
   var componentsText
 
-  if (!(nextInstruction === null)) {
+  if (nextInstruction !== null) {
     distanceAlongGeometry = instruction.distance
     text = nextInstruction.street_name
     modifier = getMapboxModifier(nextInstruction.sign)
@@ -361,6 +361,7 @@ function getTranslatedDistance (distance) {
     unit = kilometres[locale]
     convertedDistance = distance / 1000
   } else {
+    convertedDistance = distance
     unit = metres[locale]
   }
   let output = 'In ' + convertedDistance + unit + ' '
@@ -389,15 +390,26 @@ function getRouteOptions (path, profile, accessKey) {
     'bearings': ';',
     'continueStraight': true,
     'roundaboutExits': true,
-    'geometries': 'polyline',
+    'geometries': 'polyline6',
     'overview': 'full',
     'steps': true,
     'annotations': '',
     'voiceInstructions': true,
     'bannerInstructions': true,
-    'voiceUnits': 'metric',
+    'voiceUnits': getUnitSystem(),
     'accessToken': token,
     'requestUuid': generateUuid()
   }
   return routeOptions
+}
+
+function getUnitSystem () {
+  let system
+  switch (locale) {
+    case 'en':
+    case 'en-us': system = 'imperial'
+      break
+    default: system = 'metric'
+  }
+  return system
 }
