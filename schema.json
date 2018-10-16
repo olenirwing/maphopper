@@ -1,0 +1,673 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://example.com/root.json",
+  "type": "object",
+  "title": "The Root Schema",
+  "required": [
+    "distance",
+    "duration",
+    "geometry",
+    "weight",
+    "weight_name",
+    "legs",
+    "routeOptions",
+    "voiceLocale"
+  ],
+  "properties": {
+    "distance": {
+      "$id": "#/properties/distance",
+      "type": "number",
+      "title": "The Distance Schema",
+      "default": 0.0,
+      "examples": [
+        2624.954
+      ]
+    },
+    "duration": {
+      "$id": "#/properties/duration",
+      "type": "number",
+      "title": "The Duration Schema",
+      "default": 0.0,
+      "examples": [
+        388.689
+      ]
+    },
+    "geometry": {
+      "$id": "#/properties/geometry",
+      "type": "string",
+      "title": "The Geometry Schema",
+      "default": "",
+      "examples": [
+        "cljtlAlqrclC{TuQjg@_sAs`Aiu@ktAsa@kEr@ugAc\\_mB{yAaf@_^iyAkbAmzCucCyCsDsGcOkBsCdFcPdDoHjQsn@e}DqiCm_@tkAmt@d~Bvn@pIn{@mnC"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "weight": {
+      "$id": "#/properties/weight",
+      "type": "number",
+      "title": "The Weight Schema",
+      "default": 0.0,
+      "examples": [
+        388.689
+      ]
+    },
+    "weight_name": {
+      "$id": "#/properties/weight_name",
+      "type": "string",
+      "title": "The Weight_name Schema",
+      "default": "",
+      "examples": [
+        "routability"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "legs": {
+      "$id": "#/properties/legs",
+      "type": "array",
+      "title": "The Legs Schema",
+      "items": {
+        "$id": "#/properties/legs/items",
+        "type": "object",
+        "title": "The Items Schema",
+        "required": [
+          "distance",
+          "duration",
+          "summary",
+          "steps"
+        ],
+        "properties": {
+          "distance": {
+            "$id": "#/properties/legs/items/properties/distance",
+            "type": "number",
+            "title": "The Distance Schema",
+            "default": 0.0,
+            "examples": [
+              2624.954
+            ]
+          },
+          "duration": {
+            "$id": "#/properties/legs/items/properties/duration",
+            "type": "number",
+            "title": "The Duration Schema",
+            "default": 0.0,
+            "examples": [
+              388.689
+            ]
+          },
+          "summary": {
+            "$id": "#/properties/legs/items/properties/summary",
+            "type": "string",
+            "title": "The Summary Schema",
+            "default": "",
+            "examples": [
+              "GraphHopper Route: Crosby Street to East 12th Street"
+            ],
+            "pattern": "^(.*)$"
+          },
+          "steps": {
+            "$id": "#/properties/legs/items/properties/steps",
+            "type": "array",
+            "title": "The Steps Schema",
+            "items": {
+              "$id": "#/properties/legs/items/properties/steps/items",
+              "type": "object",
+              "title": "The Items Schema",
+              "required": [
+                "name",
+                "duration",
+                "weight",
+                "distance",
+                "geometry",
+                "driving_side",
+                "mode",
+                "maneuver",
+                "intersections",
+                "voiceInstructions",
+                "bannerInstructions"
+              ],
+              "properties": {
+                "name": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/name",
+                  "type": "string",
+                  "title": "The Name Schema",
+                  "default": "",
+                  "examples": [
+                    "Crosby Street"
+                  ],
+                  "pattern": "^(.*)$"
+                },
+                "duration": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/duration",
+                  "type": "number",
+                  "title": "The Duration Schema",
+                  "default": 0.0,
+                  "examples": [
+                    8.351
+                  ]
+                },
+                "weight": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/weight",
+                  "type": "number",
+                  "title": "The Weight Schema",
+                  "default": 0.0,
+                  "examples": [
+                    8.351
+                  ]
+                },
+                "distance": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/distance",
+                  "type": "number",
+                  "title": "The Distance Schema",
+                  "default": 0.0,
+                  "examples": [
+                    46.396
+                  ]
+                },
+                "geometry": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/geometry",
+                  "type": "string",
+                  "title": "The Geometry Schema",
+                  "default": "",
+                  "examples": [
+                    "cljtlAlqrclC{TuQ"
+                  ],
+                  "pattern": "^(.*)$"
+                },
+                "driving_side": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/driving_side",
+                  "type": "string",
+                  "title": "The Driving_side Schema",
+                  "default": "",
+                  "examples": [
+                    "right"
+                  ],
+                  "pattern": "^(.*)$"
+                },
+                "mode": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/mode",
+                  "type": "string",
+                  "title": "The Mode Schema",
+                  "default": "",
+                  "examples": [
+                    "driving"
+                  ],
+                  "pattern": "^(.*)$"
+                },
+                "maneuver": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver",
+                  "type": "object",
+                  "title": "The Maneuver Schema",
+                  "required": [
+                    "bearing_before",
+                    "bearing_after",
+                    "location",
+                    "modifier",
+                    "type",
+                    "instruction"
+                  ],
+                  "properties": {
+                    "bearing_before": {
+                      "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/bearing_before",
+                      "type": "integer",
+                      "title": "The Bearing_before Schema",
+                      "default": 0,
+                      "examples": [
+                        17
+                      ]
+                    },
+                    "bearing_after": {
+                      "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/bearing_after",
+                      "type": "integer",
+                      "title": "The Bearing_after Schema",
+                      "default": 0,
+                      "examples": [
+                        17
+                      ]
+                    },
+                    "location": {
+                      "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/location",
+                      "type": "array",
+                      "title": "The Location Schema",
+                      "items": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/location/items",
+                        "type": "number",
+                        "title": "The Items Schema",
+                        "default": 0.0,
+                        "examples": [
+                          -74.000167,
+                          40.720082
+                        ]
+                      }
+                    },
+                    "modifier": {
+                      "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/modifier",
+                      "type": "string",
+                      "title": "The Modifier Schema",
+                      "default": "",
+                      "examples": [
+                        "straight"
+                      ],
+                      "pattern": "^(.*)$"
+                    },
+                    "type": {
+                      "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/type",
+                      "type": "string",
+                      "title": "The Type Schema",
+                      "default": "",
+                      "examples": [
+                        "depart"
+                      ],
+                      "pattern": "^(.*)$"
+                    },
+                    "instruction": {
+                      "$id": "#/properties/legs/items/properties/steps/items/properties/maneuver/properties/instruction",
+                      "type": "string",
+                      "title": "The Instruction Schema",
+                      "default": "",
+                      "examples": [
+                        "Continue onto Crosby Street"
+                      ],
+                      "pattern": "^(.*)$"
+                    }
+                  }
+                },
+                "intersections": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/intersections",
+                  "type": "array",
+                  "title": "The Intersections Schema",
+                  "items": {
+                    "$id": "#/properties/legs/items/properties/steps/items/properties/intersections/items",
+                    "type": "object",
+                    "title": "The Items Schema",
+                    "required": [
+                      "location"
+                    ],
+                    "properties": {
+                      "location": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/intersections/items/properties/location",
+                        "type": "array",
+                        "title": "The Location Schema",
+                        "items": {
+                          "$id": "#/properties/legs/items/properties/steps/items/properties/intersections/items/properties/location/items",
+                          "type": "number",
+                          "title": "The Items Schema",
+                          "default": 0.0,
+                          "examples": [
+                            -74.000167,
+                            40.720082
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "voiceInstructions": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/voiceInstructions",
+                  "type": "array",
+                  "title": "The Voiceinstructions Schema",
+                  "items": {
+                    "$id": "#/properties/legs/items/properties/steps/items/properties/voiceInstructions/items",
+                    "type": "object",
+                    "title": "The Items Schema",
+                    "required": [
+                      "distanceAlongGeometry",
+                      "announcement",
+                      "ssmlAnnouncement"
+                    ],
+                    "properties": {
+                      "distanceAlongGeometry": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/voiceInstructions/items/properties/distanceAlongGeometry",
+                        "type": "number",
+                        "title": "The Distancealonggeometry Schema",
+                        "default": 0.0,
+                        "examples": [
+                          46.396
+                        ]
+                      },
+                      "announcement": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/voiceInstructions/items/properties/announcement",
+                        "type": "string",
+                        "title": "The Announcement Schema",
+                        "default": "",
+                        "examples": [
+                          "Continue onto Crosby Street, then Turn right onto Grand Street"
+                        ],
+                        "pattern": "^(.*)$"
+                      },
+                      "ssmlAnnouncement": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/voiceInstructions/items/properties/ssmlAnnouncement",
+                        "type": "string",
+                        "title": "The Ssmlannouncement Schema",
+                        "default": "",
+                        "examples": [
+                          "<speak><amazon:effect name=\"drc\"><prosody rate=\"1.08\">Continue onto Crosby Street, then Turn right onto Grand Street </prosody></amazon:effect></speak>"
+                        ],
+                        "pattern": "^(.*)$"
+                      }
+                    }
+                  }
+                },
+                "bannerInstructions": {
+                  "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions",
+                  "type": "array",
+                  "title": "The Bannerinstructions Schema",
+                  "items": {
+                    "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items",
+                    "type": "object",
+                    "title": "The Items Schema",
+                    "required": [
+                      "distanceAlongGeometry",
+                      "primary"
+                    ],
+                    "properties": {
+                      "distanceAlongGeometry": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/distanceAlongGeometry",
+                        "type": "number",
+                        "title": "The Distancealonggeometry Schema",
+                        "default": 0.0,
+                        "examples": [
+                          46.396
+                        ]
+                      },
+                      "primary": {
+                        "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary",
+                        "type": "object",
+                        "title": "The Primary Schema",
+                        "required": [
+                          "text",
+                          "type",
+                          "modifier",
+                          "components"
+                        ],
+                        "properties": {
+                          "text": {
+                            "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/text",
+                            "type": "string",
+                            "title": "The Text Schema",
+                            "default": "",
+                            "examples": [
+                              "Grand Street"
+                            ],
+                            "pattern": "^(.*)$"
+                          },
+                          "type": {
+                            "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/type",
+                            "type": "string",
+                            "title": "The Type Schema",
+                            "default": "",
+                            "examples": [
+                              "text"
+                            ],
+                            "pattern": "^(.*)$"
+                          },
+                          "modifier": {
+                            "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/modifier",
+                            "type": "string",
+                            "title": "The Modifier Schema",
+                            "default": "",
+                            "examples": [
+                              "right"
+                            ],
+                            "pattern": "^(.*)$"
+                          },
+                          "components": {
+                            "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/components",
+                            "type": "array",
+                            "title": "The Components Schema",
+                            "items": {
+                              "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/components/items",
+                              "type": "object",
+                              "title": "The Items Schema",
+                              "required": [
+                                "text",
+                                "type"
+                              ],
+                              "properties": {
+                                "text": {
+                                  "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/components/items/properties/text",
+                                  "type": "string",
+                                  "title": "The Text Schema",
+                                  "default": "",
+                                  "examples": [
+                                    "Grand Street"
+                                  ],
+                                  "pattern": "^(.*)$"
+                                },
+                                "type": {
+                                  "$id": "#/properties/legs/items/properties/steps/items/properties/bannerInstructions/items/properties/primary/properties/components/items/properties/type",
+                                  "type": "string",
+                                  "title": "The Type Schema",
+                                  "default": "",
+                                  "examples": [
+                                    "text"
+                                  ],
+                                  "pattern": "^(.*)$"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "routeOptions": {
+      "$id": "#/properties/routeOptions",
+      "type": "object",
+      "title": "The Routeoptions Schema",
+      "required": [
+        "baseUrl",
+        "user",
+        "profile",
+        "coordinates",
+        "language",
+        "bearings",
+        "continueStraight",
+        "roundaboutExits",
+        "geometries",
+        "overview",
+        "steps",
+        "annotations",
+        "voiceInstructions",
+        "bannerInstructions",
+        "voiceUnits",
+        "accessToken",
+        "requestUuid"
+      ],
+      "properties": {
+        "baseUrl": {
+          "$id": "#/properties/routeOptions/properties/baseUrl",
+          "type": "string",
+          "title": "The Baseurl Schema",
+          "default": "",
+          "examples": [
+            "https://api.mapbox.com"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "user": {
+          "$id": "#/properties/routeOptions/properties/user",
+          "type": "string",
+          "title": "The User Schema",
+          "default": "",
+          "examples": [
+            "mapbox"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "profile": {
+          "$id": "#/properties/routeOptions/properties/profile",
+          "type": "string",
+          "title": "The Profile Schema",
+          "default": "",
+          "examples": [
+            "driving"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "coordinates": {
+          "$id": "#/properties/routeOptions/properties/coordinates",
+          "type": "array",
+          "title": "The Coordinates Schema",
+          "items": {
+            "$id": "#/properties/routeOptions/properties/coordinates/items",
+            "type": "array",
+            "title": "The Items Schema",
+            "items": {
+              "$id": "#/properties/routeOptions/properties/coordinates/items/items",
+              "type": "number",
+              "title": "The Items Schema",
+              "default": 0.0,
+              "examples": [
+                -74.000167,
+                40.720082
+              ]
+            }
+          }
+        },
+        "language": {
+          "$id": "#/properties/routeOptions/properties/language",
+          "type": "string",
+          "title": "The Language Schema",
+          "default": "",
+          "examples": [
+            "en"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "bearings": {
+          "$id": "#/properties/routeOptions/properties/bearings",
+          "type": "string",
+          "title": "The Bearings Schema",
+          "default": "",
+          "examples": [
+            ";"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "continueStraight": {
+          "$id": "#/properties/routeOptions/properties/continueStraight",
+          "type": "boolean",
+          "title": "The Continuestraight Schema",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "roundaboutExits": {
+          "$id": "#/properties/routeOptions/properties/roundaboutExits",
+          "type": "boolean",
+          "title": "The Roundaboutexits Schema",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "geometries": {
+          "$id": "#/properties/routeOptions/properties/geometries",
+          "type": "string",
+          "title": "The Geometries Schema",
+          "default": "",
+          "examples": [
+            "polyline"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "overview": {
+          "$id": "#/properties/routeOptions/properties/overview",
+          "type": "string",
+          "title": "The Overview Schema",
+          "default": "",
+          "examples": [
+            "full"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "steps": {
+          "$id": "#/properties/routeOptions/properties/steps",
+          "type": "boolean",
+          "title": "The Steps Schema",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "annotations": {
+          "$id": "#/properties/routeOptions/properties/annotations",
+          "type": "string",
+          "title": "The Annotations Schema",
+          "default": "",
+          "examples": [
+            ""
+          ],
+          "pattern": "^(.*)$"
+        },
+        "voiceInstructions": {
+          "$id": "#/properties/routeOptions/properties/voiceInstructions",
+          "type": "boolean",
+          "title": "The Voiceinstructions Schema",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "bannerInstructions": {
+          "$id": "#/properties/routeOptions/properties/bannerInstructions",
+          "type": "boolean",
+          "title": "The Bannerinstructions Schema",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "voiceUnits": {
+          "$id": "#/properties/routeOptions/properties/voiceUnits",
+          "type": "string",
+          "title": "The Voiceunits Schema",
+          "default": "",
+          "examples": [
+            "metric"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "accessToken": {
+          "$id": "#/properties/routeOptions/properties/accessToken",
+          "type": "string",
+          "title": "The Accesstoken Schema",
+          "default": "",
+          "examples": [
+            "pk.eyJ1Ijoib2xlbmlyd2luZyIsImEiOiJjam1xM21vaWQwdGdqM3ZwbmM5Z3A0Mjl1In0.GV0vOW4dT8uWB7wYwj9AoQ"
+          ],
+          "pattern": "^(.*)$"
+        },
+        "requestUuid": {
+          "$id": "#/properties/routeOptions/properties/requestUuid",
+          "type": "string",
+          "title": "The Requestuuid Schema",
+          "default": "",
+          "examples": [
+            "6DKaxXW6kjhyagkwBKX5GiUo7"
+          ],
+          "pattern": "^(.*)$"
+        }
+      }
+    },
+    "voiceLocale": {
+      "$id": "#/properties/voiceLocale",
+      "type": "string",
+      "title": "The Voicelocale Schema",
+      "default": "",
+      "examples": [
+        "en"
+      ],
+      "pattern": "^(.*)$"
+    }
+  }
+}
