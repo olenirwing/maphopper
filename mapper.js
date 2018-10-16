@@ -6,20 +6,41 @@ var allCoordinates
 var allCoordinatesGEO
 var locale
 
-var FAR = 2000
-var MID = 1000
-var CLOSE = 400
-var VERY_CLOSE = 200
-var EXTREMELY_CLOSE = 60
+const UUID = generateUuid()
+
+const FAR = 2000
+const MID = 1000
+const CLOSE = 400
+const VERY_CLOSE = 200
+const EXTREMELY_CLOSE = 60
 
 exports.map = function (jsonRes, profile, _locale, mapboxKey) {
   console.log('#####################')
-  var path = jsonRes.paths[0]
-  allInstructions = path.instructions
-  allCoordinatesGEO = path.points.coordinates // coordinates in GEOJJSON format
-  allCoordinates = getAdaptedCoordinates(path.points.coordinates)
+  var paths = jsonRes.paths
   locale = _locale
-  var mapBoxResponse =
+  var mapBoxResponse = {
+    'routes': getAllMapboxRoutes(paths, profile, mapboxKey),
+    'waypoints': getWaypoints(paths),
+    'code': 'Ok',
+    'uuid': UUID
+  }
+  return mapBoxResponse
+}
+
+function getWaypoints (paths) {
+  return paths[0].snapped_waypoints.coordinates
+}
+
+function getAllMapboxRoutes (paths, profile, mapboxKey) {
+  var routes = paths.map(path => getSingleMapboxRoute(path, profile, mapboxKey))
+  return routes
+}
+
+function getSingleMapboxRoute (path, profile, mapboxKey) {
+  allInstructions = path.instructions
+  allCoordinatesGEO = path.points.coordinates // coordinates in GEOJSON format
+  allCoordinates = getAdaptedCoordinates(path.points.coordinates)
+  var mapBoxRoute =
     {
       'distance': path.distance,
       'duration': path.time / 1000,
@@ -30,7 +51,7 @@ exports.map = function (jsonRes, profile, _locale, mapboxKey) {
       'routeOptions': getRouteOptions(path, profile, mapboxKey),
       'voiceLocale': locale
     }
-  return mapBoxResponse
+  return mapBoxRoute
 }
 
 function getLegs (path) {
@@ -398,7 +419,7 @@ function getRouteOptions (path, profile, accessKey) {
     'bannerInstructions': true,
     'voiceUnits': getUnitSystem(),
     'accessToken': token,
-    'requestUuid': generateUuid()
+    'requestUuid': UUID
   }
   return routeOptions
 }
