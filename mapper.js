@@ -176,9 +176,12 @@ function getSteps () {
     var sectionPoints = [] // for geometry of this step
     sectionPoints.push(allCoordinates[instruction.interval[0]])
     sectionPoints.push(allCoordinates[instruction.interval[1]])
-
+    let streetName = instruction.street_name
+    if (isLastInstruction(instruction)) {
+      streetName = getLastStreetName()
+    }
     var step = {
-      'name': instruction.street_name,
+      'name': streetName,
       'duration': instruction.time / 1000,
       'weight': instruction.time / 1000,
       'distance': instruction.distance,
@@ -266,10 +269,11 @@ function getNextInstruction (instruction) {
 
 function getVoiceInstructions (instruction) {
   var voiceInstructions = []
-  var distance = instruction.distance
+  var distance = Math.floor(instruction.distance / 10) * 10
   departAnnouncementAlreadySaid = false
   if (isFirstInstruction(instruction)) {
     voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, false))
+    console.log('first instruction')
   }
   // different milestones are added for voice instructions, so the instruction is repeated after certain distances
   if (distance > FAR) {
@@ -283,11 +287,13 @@ function getVoiceInstructions (instruction) {
   } else if (distance > VERY_CLOSE) {
     voiceInstructions.push(getSingleVoiceInstruction(VERY_CLOSE, instruction))
   }
+  let sayDist = false
+  if (isLastInstruction(getNextInstruction(instruction))) { sayDist = true }
   if (distance < EXTREMELY_CLOSE) {
-    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, false))
+    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, sayDist))
   } else {
     var distanceAlongGeometry = EXTREMELY_CLOSE // 60m before turn final announcement is made
-    voiceInstructions.push(getSingleVoiceInstruction(distanceAlongGeometry, instruction, false))
+    voiceInstructions.push(getSingleVoiceInstruction(distanceAlongGeometry, instruction, sayDist))
   }
   return voiceInstructions
 }
@@ -300,32 +306,32 @@ function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDista
   let departAnnouncement = '' // the very first announcement, often "follow route"
   let announcement = ''
   if (isFirstInstruction(instruction) && !departAnnouncementAlreadySaid) {
-    announcement = instruction.text
+    departAnnouncement = instruction.text + getTranslatedSentenceConnector()
     departAnnouncementAlreadySaid = true
-  } else {
-    try {
-      announcement = spokenInstruction.text
-    } catch (e) {
-      announcement = instruction.text
-    }
   }
+  try {
+    announcement = spokenInstruction.text
+  } catch (e) {
+    announcement = instruction.text
+  }
+
   if (!sayDistance && shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)) {
     announcement += getTranslatedSentenceConnector() + nextInstruction.text
   }
   var voiceInstruction = {
-    'distanceAlongGeometry': distanceAlongGeometry + 50, // to compensate the delay of the spoken message
+    'distanceAlongGeometry': distanceAlongGeometry, // to compensate the delay of the spoken message
     'announcement': departAnnouncement + announcement,
-    'ssmlAnnouncement': getSsmlAnnouncement(distanceAlongGeometry, announcement, sayDistance)
+    'ssmlAnnouncement': getSsmlAnnouncement(distanceAlongGeometry, announcement, sayDistance, departAnnouncement)
   }
   return voiceInstruction
 }
 
-function getSsmlAnnouncement (distanceAlongGeometry, announcement, sayDistance) {
+function getSsmlAnnouncement (distanceAlongGeometry, announcement, sayDistance, departAnnouncement) {
   var distanceString = ''
   if (sayDistance) {
     distanceString = getTranslatedDistance(distanceAlongGeometry)
   }
-  var ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + distanceString + announcement + ' </prosody></amazon:effect></speak>'
+  var ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + departAnnouncement + distanceString + announcement + ' </prosody></amazon:effect></speak>'
   return ssml
 }
 
@@ -365,12 +371,17 @@ function getBannerInstructions (instruction) {
 
   if (nextInstruction !== null) {
     distanceAlongGeometry = instruction.distance
-    text = nextInstruction.street_name
     modifier = getMapboxModifier(nextInstruction.sign)
-    componentsText = nextInstruction.street_name
+    if (isLastInstruction(nextInstruction)) { // Target reached is in 'text' key, not street_name
+      componentsText = nextInstruction.text
+      text = nextInstruction.text
+    } else {
+      componentsText = nextInstruction.street_name
+      text = nextInstruction.street_name
+    }
   } else {
     distanceAlongGeometry = 0
-    text = prevInstruction.street_name // change this later
+    text = prevInstruction.text // change this later
     modifier = ''
     componentsText = prevInstruction.street_name
   }
