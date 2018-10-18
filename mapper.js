@@ -14,6 +14,8 @@ const CLOSE = 400
 const VERY_CLOSE = 200
 const EXTREMELY_CLOSE = 60
 
+let departAnnouncementAlreadySaid = false
+
 exports.map = function (jsonRes, profile, _locale, mapboxKey) {
   console.log('#####################')
   var paths = jsonRes.paths
@@ -223,17 +225,21 @@ function getDirectionOfHeading (angle) {
 }
 
 function getType (instruction) {
-  if (isFirstInstruction(instruction)) {
-    return 'depart'
+  if (instruction === null) {
+    return 'arrive'
   } else {
-    switch (instruction.sign) {
-      case 4: // Instruction.FINISH:
-      case 5: // Instruction.REACHED_VIA:
-        return 'arrive'
-      case 6:// Instruction.USE_ROUNDABOUT:
-        return 'roundabout'
-      default:
-        return 'turn'
+    if (isFirstInstruction(instruction)) {
+      return 'depart'
+    } else {
+      switch (instruction.sign) {
+        case 4: // Instruction.FINISH:
+        case 5: // Instruction.REACHED_VIA:
+          return 'arrive'
+        case 6:// Instruction.USE_ROUNDABOUT:
+          return 'roundabout'
+        default:
+          return 'turn'
+      }
     }
   }
 }
@@ -261,7 +267,10 @@ function getNextInstruction (instruction) {
 function getVoiceInstructions (instruction) {
   var voiceInstructions = []
   var distance = instruction.distance
-
+  departAnnouncementAlreadySaid = false
+  if (isFirstInstruction(instruction)) {
+    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, false))
+  }
   // different milestones are added for voice instructions, so the instruction is repeated after certain distances
   if (distance > FAR) {
     voiceInstructions.push(getSingleVoiceInstruction(FAR, instruction))
@@ -275,42 +284,45 @@ function getVoiceInstructions (instruction) {
     voiceInstructions.push(getSingleVoiceInstruction(VERY_CLOSE, instruction))
   }
   if (distance < EXTREMELY_CLOSE) {
-    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, true))
+    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, false))
   } else {
     var distanceAlongGeometry = EXTREMELY_CLOSE // 60m before turn final announcement is made
-    voiceInstructions.push(getSingleVoiceInstruction(distanceAlongGeometry, instruction, true))
+    voiceInstructions.push(getSingleVoiceInstruction(distanceAlongGeometry, instruction, false))
   }
   return voiceInstructions
 }
 
-function getSingleVoiceInstruction (distanceAlongGeometry, instruction, closeToManeuver = false) {
+function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDistance = true) {
   // Voice Instructions use the text of the next Manuever, so from the next instruction
   // For the beginning of the navigation however, you need the text of the current instruction
   let spokenInstruction = getNextInstruction(instruction)
   let nextInstruction = getNextInstruction(spokenInstruction)
+  let departAnnouncement = '' // the very first announcement, often "follow route"
   let announcement = ''
-  if (isFirstInstruction(instruction)) {
-    announcement += instruction.text + getTranslatedSentenceConnector()
-  }
-  try {
-    announcement += spokenInstruction.text
-  } catch (e) {
+  if (isFirstInstruction(instruction) && !departAnnouncementAlreadySaid) {
     announcement = instruction.text
+    departAnnouncementAlreadySaid = true
+  } else {
+    try {
+      announcement = spokenInstruction.text
+    } catch (e) {
+      announcement = instruction.text
+    }
   }
-  if (closeToManeuver && shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)) {
+  if (!sayDistance && shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)) {
     announcement += getTranslatedSentenceConnector() + nextInstruction.text
   }
   var voiceInstruction = {
-    'distanceAlongGeometry': distanceAlongGeometry,
-    'announcement': announcement,
-    'ssmlAnnouncement': getSsmlAnnouncement(distanceAlongGeometry, announcement, closeToManeuver)
+    'distanceAlongGeometry': distanceAlongGeometry + 50, // to compensate the delay of the spoken message
+    'announcement': departAnnouncement + announcement,
+    'ssmlAnnouncement': getSsmlAnnouncement(distanceAlongGeometry, announcement, sayDistance)
   }
   return voiceInstruction
 }
 
-function getSsmlAnnouncement (distanceAlongGeometry, announcement, closeToManeuver) {
+function getSsmlAnnouncement (distanceAlongGeometry, announcement, sayDistance) {
   var distanceString = ''
-  if (!closeToManeuver) {
+  if (sayDistance) {
     distanceString = getTranslatedDistance(distanceAlongGeometry)
   }
   var ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + distanceString + announcement + ' </prosody></amazon:effect></speak>'
@@ -366,7 +378,7 @@ function getBannerInstructions (instruction) {
     'distanceAlongGeometry': distanceAlongGeometry,
     'primary': {
       'text': text,
-      'type': 'text',
+      'type': getType(nextInstruction),
       'modifier': modifier,
       'components': [{ 'text': componentsText, 'type': 'text' }]
     }
