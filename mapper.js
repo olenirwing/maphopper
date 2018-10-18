@@ -28,7 +28,26 @@ exports.map = function (jsonRes, profile, _locale, mapboxKey) {
 }
 
 function getWaypoints (paths) {
-  return paths[0].snapped_waypoints.coordinates
+  let waypoints = []
+  let coordinates = paths[0].snapped_waypoints.coordinates
+  let firstStreet = getFirstStreetName()
+  let lastStreet = getLastStreetName()
+  let index = 0
+  coordinates.map(coordinatePair => {
+    let street
+    if (index === 0) {
+      street = firstStreet
+    } else {
+      street = lastStreet
+    }
+    let waypoint = {
+      'name': street,
+      'location': coordinatePair
+    }
+    index++
+    waypoints.push(waypoint)
+  })
+  return waypoints
 }
 
 function getAllMapboxRoutes (paths, profile, mapboxKey) {
@@ -65,14 +84,26 @@ function getLegs (path) {
 }
 
 function getSummary () {
-  var firstStreet = allInstructions[0].street_name
-  var index = 0
-  if (allInstructions.length > 1) {
-    index = allInstructions.length - 2
-  }
-  var lastStreet = allInstructions[index].street_name
+  let firstStreet = getFirstStreetName()
+  let lastStreet = getLastStreetName()
   var summary = 'GraphHopper Route: ' + firstStreet + ' to ' + lastStreet
   return summary
+}
+
+function getFirstStreetName () {
+  var firstStreet = allInstructions[0].street_name
+  return firstStreet
+}
+
+function getLastStreetName () {
+  let index
+  if (allInstructions.length > 1) {
+    index = allInstructions.length - 2
+  } else {
+    index = 1
+  }
+  let streetName = allInstructions[index].street_name
+  return streetName
 }
 
 function getAdaptedCoordinates (path) {
@@ -166,11 +197,18 @@ function getSteps () {
 
 function getManeuver (instruction) {
   var type = getType(instruction)
+  var modifier
+  if (type === 'arrive' && instruction.last_heading !== undefined) {
+    modifier = getDirectionOfHeading(instruction.last_heading)
+  } else {
+    modifier = getMapboxModifier(instruction.sign)
+  }
+
   var maneuver = {
     'bearing_before': getBearingBefore(instruction),
     'bearing_after': getBearingAfter(instruction),
     'location': allCoordinatesGEO[instruction.interval[0]],
-    'modifier': getMapboxModifier(instruction.sign),
+    'modifier': modifier,
     'type': type,
     'instruction': instruction.text
   }
@@ -178,6 +216,10 @@ function getManeuver (instruction) {
     maneuver['exit'] = instruction.exit_number
   }
   return maneuver
+}
+
+function getDirectionOfHeading (angle) {
+  if (angle >= 180) { return 'left' } else { return 'right' }
 }
 
 function getType (instruction) {
@@ -242,9 +284,20 @@ function getVoiceInstructions (instruction) {
 }
 
 function getSingleVoiceInstruction (distanceAlongGeometry, instruction, closeToManeuver = false) {
-  let nextInstruction = getNextInstruction(instruction)
-  let announcement = instruction.text
-  if (closeToManeuver && shouldAddNextVoiceInstruction(instruction, nextInstruction)) {
+  // Voice Instructions use the text of the next Manuever, so from the next instruction
+  // For the beginning of the navigation however, you need the text of the current instruction
+  let spokenInstruction = getNextInstruction(instruction)
+  let nextInstruction = getNextInstruction(spokenInstruction)
+  let announcement = ''
+  if (isFirstInstruction(instruction)) {
+    announcement += instruction.text + getTranslatedSentenceConnector()
+  }
+  try {
+    announcement += spokenInstruction.text
+  } catch (e) {
+    announcement = instruction.text
+  }
+  if (closeToManeuver && shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)) {
     announcement += getTranslatedSentenceConnector() + nextInstruction.text
   }
   var voiceInstruction = {
