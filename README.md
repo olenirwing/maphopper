@@ -11,7 +11,7 @@ It modifies the response you get from the Graphhoppper API and returns a fully f
 Pull the docker container:
 `docker pull gadda27/maphopper`
 
-Run the docker container at your prefered port:
+Run the docker container at your preferred port:
 `docker run -p 3000:[PORT] -d gadda27/maphopper`
 
 ## Requests
