@@ -146,6 +146,9 @@ function getMapboxModifier (sign) {
     case 6:
       modifier = 'right'
       break
+    case 7:
+      modifier = 'right'
+      break
   }
   return modifier
 }
@@ -174,8 +177,11 @@ function getSteps () {
     var instruction = allInstructions[index]
 
     var sectionPoints = [] // for geometry of this step
-    sectionPoints.push(allCoordinates[instruction.interval[0]])
-    sectionPoints.push(allCoordinates[instruction.interval[1]])
+
+    let allPointIndexes = Array.range(instruction.interval[0], instruction.interval[1] + 1)
+    allPointIndexes.map(index => {
+      sectionPoints.push(allCoordinates[index])
+    })
     let streetName = instruction.street_name
     if (isLastInstruction(instruction)) {
       streetName = getLastStreetName()
@@ -186,18 +192,87 @@ function getSteps () {
       'weight': instruction.time / 1000,
       'distance': instruction.distance,
       'geometry': polyline.encode(sectionPoints),
-      'driving_side': 'right',
+      'driving_side': getDrivingSide(),
       'mode': 'driving',
       'maneuver': getManeuver(instruction),
-      'intersections': [{
-        'location': allCoordinatesGEO[instruction.interval[0]]
-      }],
+      'intersections': getIntersections(instruction),
       'voiceInstructions': getVoiceInstructions(instruction),
       'bannerInstructions': getBannerInstructions(instruction)
     }
     steps.push(step)
   }
   return steps
+}
+
+function getIntersections (instruction) {
+  let rangeStart = instruction.interval[0] + 1
+  let rangeEnd = instruction.interval[1]
+  let intersections = []
+  if (hasIntersections(instruction)) {
+    Array.range(rangeStart, rangeEnd).map(index => {
+      let coordinate = allCoordinatesGEO[index]
+      let nextCoordinate = allCoordinatesGEO[index + 1]
+      let inter = getSingleIntersection(coordinate, nextCoordinate)
+      intersections.push(inter)
+    })
+  } else {
+    intersections.push(createDummyIntersection(instruction))
+  }
+  return intersections
+}
+
+function getSingleIntersection (coordinate, nextCoordinate) {
+  let intersection = {
+    'out': 0,
+    'entry': [
+      true
+    ],
+    'bearings': [
+      bearingCalc.bearing(coordinate[1], coordinate[0], nextCoordinate[1], nextCoordinate[0])
+    ],
+    'location': coordinate
+  }
+
+  return intersection
+}
+
+function hasIntersections (instruction) {
+  let numberOfInstructions = instruction.interval[1] - instruction.interval[0] - 1
+  if (numberOfInstructions > 0) {
+    return true
+  } else {
+    return false
+  }
+}
+
+Array.range = (start, end) => Array.from({ length: (end - start) }, (v, k) => k + start)
+
+function createDummyIntersection (instruction) {
+  let bearing = getBearingBefore(instruction)
+
+  if (isLastInstruction(instruction)) {
+    bearing = bearing - 180
+  }
+  let intersection = {
+    'location': allCoordinatesGEO[instruction.interval[1]],
+    'in': 0,
+    'entry': [
+      true
+    ],
+    'bearings': [
+      bearing
+    ]
+  }
+  return intersection
+}
+
+function getDrivingSide () {
+  let leftSide = ['en-gb', 'en-au', 'mt']
+  if (leftSide.includes(locale.toLowerCase())) {
+    return 'left'
+  } else {
+    return 'right'
+  }
 }
 
 function getManeuver (instruction) {
@@ -240,6 +315,8 @@ function getType (instruction) {
           return 'arrive'
         case 6:// Instruction.USE_ROUNDABOUT:
           return 'roundabout'
+        case -7:
+        case 7: return 'continue'
         default:
           return 'turn'
       }
@@ -273,7 +350,9 @@ function getVoiceInstructions (instruction) {
   departAnnouncementAlreadySaid = false
   if (isFirstInstruction(instruction)) {
     voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, false))
-    console.log('first instruction')
+  }
+  if (isLastInstruction(instruction)) {
+    return voiceInstructions
   }
   // different milestones are added for voice instructions, so the instruction is repeated after certain distances
   if (distance > FAR) {
@@ -309,10 +388,8 @@ function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDista
     departAnnouncement = instruction.text + getTranslatedSentenceConnector()
     departAnnouncementAlreadySaid = true
   }
-  try {
+  if (spokenInstruction !== null) {
     announcement = spokenInstruction.text
-  } catch (e) {
-    announcement = instruction.text
   }
 
   if (!sayDistance && shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)) {
@@ -362,17 +439,19 @@ function isStepShort (instruction) {
 }
 
 function getBannerInstructions (instruction) {
-  var prevInstruction = getPreviousInstruction(instruction)
   var nextInstruction = getNextInstruction(instruction)
   var distanceAlongGeometry
   var text
   var modifier
   var componentsText
+  if (isLastInstruction(instruction)) {
+    return []
+  }
 
   if (nextInstruction !== null) {
     distanceAlongGeometry = instruction.distance
     modifier = getMapboxModifier(nextInstruction.sign)
-    if (isLastInstruction(nextInstruction)) { // Target reached is in 'text' key, not street_name
+    if (nextInstruction.street_name === '') { // Target reached is in 'text' key, not street_name
       componentsText = nextInstruction.text
       text = nextInstruction.text
     } else {
@@ -381,9 +460,9 @@ function getBannerInstructions (instruction) {
     }
   } else {
     distanceAlongGeometry = 0
-    text = prevInstruction.text // change this later
+    text = instruction.text
     modifier = ''
-    componentsText = prevInstruction.street_name
+    componentsText = instruction.text
   }
   var bannerInstruction = {
     'distanceAlongGeometry': distanceAlongGeometry,
@@ -391,14 +470,33 @@ function getBannerInstructions (instruction) {
       'text': text,
       'type': getType(nextInstruction),
       'modifier': modifier,
-      'components': [{ 'text': componentsText, 'type': 'text' }]
+      'components': [{ 'text': componentsText, 'type': 'text' }],
+      'secondary': null
     }
+  }
+  if (getType(nextInstruction) === 'roundabout') {
+    bannerInstruction = addRoundaboutProperties(bannerInstruction, nextInstruction)
   }
   if (nextInstructionExists(nextInstruction) && isStepShort(getNextInstruction(nextInstruction))) { // adds a sub banner if the next step is really short
     var sub = getSubBanner(nextInstruction)
-    bannerInstruction['sub'] = sub
+    // bannerInstruction['sub'] = sub
   }
   return [bannerInstruction]
+}
+
+function addRoundaboutProperties (bannerInstruction, usedInstruction) {
+  let turnAngle = usedInstruction.turn_angle
+  let degrees = convertRadianToDegree(turnAngle)
+  bannerInstruction.primary['degrees'] = degrees
+  bannerInstruction.primary['driving_side'] = getDrivingSide()
+  return bannerInstruction
+}
+
+function convertRadianToDegree (turnAngle) {
+  let degrees = turnAngle * (180 / Math.PI)
+  degrees = Math.abs(degrees)
+  degrees = Math.round(degrees)
+  return degrees
 }
 
 function getSubBanner (primaryInstruction) { // primaryInstruction = instruction used for primary banner
@@ -406,7 +504,7 @@ function getSubBanner (primaryInstruction) { // primaryInstruction = instruction
   var instructionAfter = getNextInstruction(primaryInstruction)
   var sub = {
     'text': instructionAfter.street_name,
-    'type': 'text',
+    'type': getType(primaryInstruction),
     'modifier': getMapboxModifier(instructionAfter.sign),
     'components': [{ 'text': instructionAfter.street_name, 'type': 'text' }]
   }
@@ -429,17 +527,45 @@ function convertProfile (profile) {
 }
 
 function getBearingBefore (instruction) {
-  var bearingBfP1 = allCoordinatesGEO[instruction.interval[0]]
-  var bearingBfP2 = allCoordinatesGEO[instruction.interval[1]]
-  var bearingBf = bearingCalc.bearing(bearingBfP1[0], bearingBfP1[1], bearingBfP2[0], bearingBfP2[1])
-  return bearingBf
+  if (isFirstInstruction(instruction)) {
+    return 0
+  }
+  if (isLastInstruction(instruction)) {
+    let bearing = getLastBearingOfPreviousInstruction(instruction)
+    return bearing
+  } else {
+    var bearingBfP1 = allCoordinatesGEO[instruction.interval[0]]
+    var bearingBfP2 = allCoordinatesGEO[instruction.interval[1]]
+    if (hasIntersections(instruction)) {
+    // this results in a more accurate bearing, as the intersection is closer to the maneuever
+      bearingBfP1 = allCoordinatesGEO[instruction.interval[1] - 1] // the last intersection before the Manuever
+    }
+    var bearingBf = bearingCalc.bearing(bearingBfP1[0], bearingBfP1[1], bearingBfP2[0], bearingBfP2[1])
+    return bearingBf
+  }
 }
 
 function getBearingAfter (nextInstruction) {
   var bearingAfP1 = allCoordinatesGEO[nextInstruction.interval[0]]
-  var bearingAfP2 = allCoordinatesGEO[nextInstruction.interval[1]]
-  var bearingAf = bearingCalc.bearing(bearingAfP1[0], bearingAfP1[1], bearingAfP2[0], bearingAfP2[1])
+  var bearingAfP2 = allCoordinatesGEO[nextInstruction.interval[1]] // is either the first intersection or just the next maneuver
+  if (hasIntersections(nextInstruction)) {
+    bearingAfP2 = allCoordinatesGEO[nextInstruction.interval[0] + 1]
+  }
+  var bearingAf = bearingCalc.bearing(bearingAfP1[1], bearingAfP1[0], bearingAfP2[1], bearingAfP2[0])
   return bearingAf
+}
+
+function getLastBearingOfPreviousInstruction (instruction) {
+  let prevInstruction = getPreviousInstruction(instruction)
+  if (hasIntersections(prevInstruction)) {
+    let intersections = getIntersections(prevInstruction)
+    let lastInter = intersections.slice(-1)[0]
+    let bearing = lastInter.bearings[0]
+    return bearing
+  } else {
+    let bearing = getBearingAfter(prevInstruction)
+    return bearing
+  }
 }
 
 function generateUuid () {
