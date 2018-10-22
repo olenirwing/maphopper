@@ -59,8 +59,8 @@ function getAllMapboxRoutes (paths, profile, mapboxKey) {
 
 function getSingleMapboxRoute (path, profile, mapboxKey) {
   allInstructions = path.instructions
-  allCoordinatesGEO = path.points.coordinates // coordinates in GEOJSON format
-  allCoordinates = getAdaptedCoordinates(path.points.coordinates)
+  allCoordinatesGEO = path.points.coordinates // coordinates in GEOJSON format (longitude, latitude)
+  allCoordinates = getAdaptedCoordinates(path.points.coordinates) // (latitude,longitude)
   var mapBoxRoute =
     {
       'distance': path.distance,
@@ -70,7 +70,7 @@ function getSingleMapboxRoute (path, profile, mapboxKey) {
       'weight_name': 'routability',
       'legs': getLegs(path),
       'routeOptions': getRouteOptions(path, profile, mapboxKey),
-      'voiceLocale': locale
+      'voiceLocale': 'de-DE'
     }
   return mapBoxRoute
 }
@@ -251,7 +251,7 @@ function createDummyIntersection (instruction) {
   let bearing = getBearingBefore(instruction)
 
   if (isLastInstruction(instruction)) {
-    bearing = bearing - 180
+    bearing = bearing - 180 // acc. to mapbox doc., substracting 180 gives the direction of driving
   }
   let intersection = {
     'location': allCoordinatesGEO[instruction.interval[1]],
@@ -267,6 +267,8 @@ function createDummyIntersection (instruction) {
 }
 
 function getDrivingSide () {
+  // this function should be used with a country determinator, as locale is only for language settings
+  // so not yet supported
   let leftSide = ['en-gb', 'en-au', 'mt']
   if (leftSide.includes(locale.toLowerCase())) {
     return 'left'
@@ -283,7 +285,6 @@ function getManeuver (instruction) {
   } else {
     modifier = getMapboxModifier(instruction.sign)
   }
-
   var maneuver = {
     'bearing_before': getBearingBefore(instruction),
     'bearing_after': getBearingAfter(instruction),
@@ -299,6 +300,7 @@ function getManeuver (instruction) {
 }
 
 function getDirectionOfHeading (angle) {
+  // assumes that the 'last_heading' property has sth to do with on which side the target is
   if (angle >= 180) { return 'left' } else { return 'right' }
 }
 
@@ -310,10 +312,10 @@ function getType (instruction) {
       return 'depart'
     } else {
       switch (instruction.sign) {
-        case 4: // Instruction.FINISH:
-        case 5: // Instruction.REACHED_VIA:
+        case 4: // FINISH
+        case 5: // REACHED_VIA
           return 'arrive'
-        case 6:// Instruction.USE_ROUNDABOUT:
+        case 6:// USE_ROUNDABOUT
           return 'roundabout'
         case -7:
         case 7: return 'continue'
@@ -379,7 +381,7 @@ function getVoiceInstructions (instruction) {
 
 function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDistance = true) {
   // Voice Instructions use the text of the next Manuever, so from the next instruction
-  // For the beginning of the navigation however, you need the text of the current instruction
+  // For the very beginning of the navigation however, you need the text of the current instruction
   let spokenInstruction = getNextInstruction(instruction)
   let nextInstruction = getNextInstruction(spokenInstruction)
   let departAnnouncement = '' // the very first announcement, often "follow route"
