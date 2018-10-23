@@ -9,13 +9,18 @@ let profile
 let locale
 let mapboxkey
 
-proxyService.use('/api/1/route', proxy('https://graphhopper.com/', {
+function logProxyMessage (url) {
+  console.log(url)
+  console.log('proxied to https://graphhopper.com')
+}
+
+proxyService.use('/api/1/route', proxy('https://graphhopper.com', {
   proxyReqPathResolver (req) {
     profile = req.query.vehicle
     locale = req.query.locale
     mapboxkey = req.query.mapboxkey
-    console.log(req.url)
     let url = req.url.replace('/', '/api/1/route')
+    logProxyMessage(url)
     return url
   },
   userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
@@ -25,11 +30,9 @@ proxyService.use('/api/1/route', proxy('https://graphhopper.com/', {
       return data
     } else {
       var mapBoxResponse = mapper.map(data, profile, locale, mapboxkey)
-      console.log(mapBoxResponse)
       return JSON.stringify(mapBoxResponse)
     }
   }
-
 })
 )
 
@@ -43,6 +46,7 @@ proxyService.use('/api/1/isochrone', proxy('https://graphhopper.com', {
     amountOfBuckets = req.query.buckets
     colorString = req.query.contours_colors
     let url = req.url.replace('/', '/api/1/isochrone')
+    logProxyMessage(url)
     return url
   },
   userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
