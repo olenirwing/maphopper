@@ -11,6 +11,7 @@ const GH_BASE = 'https://graphhopper.com'
 let profile
 let locale
 let mapboxkey
+let pointsEncoded
 
 function logProxyMessage (url) {
   console.log(url)
@@ -22,6 +23,7 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
     profile = req.query.vehicle
     locale = req.query.locale
     mapboxkey = req.query.mapboxkey
+    pointsEncoded = req.query.points_encoded
     let url = req.url.replace('/', '/api/1/route')
     logProxyMessage(url)
     return url
@@ -32,6 +34,11 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
       data['responseCode'] = userRes.statusCode
       return data
     } else {
+      if (pointsEncoded !== 'false') {
+        data = { 'message': 'points_encoded has to be false'
+        }
+        return data
+      }
       var mapBoxResponse = mapper.map(data, profile, locale, mapboxkey)
       return JSON.stringify(mapBoxResponse)
     }
@@ -42,7 +49,6 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
 let amountOfBuckets
 let totalTime
 let colorString
-
 proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
     totalTime = req.query.time_limit
@@ -50,11 +56,11 @@ proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
     colorString = req.query.contours_colors
     let url = req.url.replace('/', '/api/1/isochrone')
     logProxyMessage(url)
+
     return url
   },
   userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
     let data = JSON.parse(proxyResData.toString('utf-8'))
-
     if (userRes.statusCode !== 200) {
       data['responseCode'] = userRes.statusCode
       return data
