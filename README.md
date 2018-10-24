@@ -81,3 +81,15 @@ returns polygons with time limits of: 100, 200, 300, 400
 
 ### Example Request:
 `http://localhost:3000/api/1/isochrone?point=51.131108,12.414551&key=[GH_ACCESSKEY]&debug=true&time_limit=600&buckets=4`
+
+
+## Matrix API
+
+Mapping of the Maprix API is currently supported with simple requests that don't require you to post a problem.json. 
+
+See the [GH Matrix Doc](https://graphhopper.com/api/1/docs/matrix/) for information on Matrix requests.
+
+### Parameters
+
+passing "weights" in the `out_arrays` parameter will be ignored for the conversion, as the Mapbox Matrix API can only return durations and distances matrixes.
+All other official parameters are supported. 
