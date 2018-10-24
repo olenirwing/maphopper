@@ -74,7 +74,6 @@ function getGeometry (solution) {
 }
 
 function isDetailedGeometry (solution) {
-  console.log(solution.routes[0])
   if (solution.routes[0].points !== undefined) {
     return true
   } else { return false }
@@ -90,7 +89,6 @@ function getAdaptedCoordinates (routes, detailed = false) {
       })
     })
   } else {
-    console.log('detailed', detailed)
     allActivities.map(activity => {
       let pair
       let newPair
