@@ -5,6 +5,7 @@ const port = 3000
 const mapper = require('./directions_mapper')
 const isoMapper = require('./isochrone_mapper')
 const optiMapper = require('./optimization_mapper')
+const matrixMapper = require('./matrix_mapper')
 
 const GH_BASE = 'https://graphhopper.com'
 
@@ -84,6 +85,33 @@ proxyService.use('/api/1/vrp', proxy(GH_BASE, {
       return data
     } else {
       let res = optiMapper.map(data)
+      return JSON.stringify(res)
+    }
+  }
+}))
+
+let outArray
+let fromPoints
+let toPoints
+let points
+
+proxyService.use('/api/1/matrix', proxy(GH_BASE, {
+  proxyReqPathResolver (req) {
+    let url = req.url.replace('/', '/api/1/matrix')
+    outArray = req.query.out_array
+    fromPoints = req.query.from_point
+    toPoints = req.query.to_point
+    points = req.query.point
+    logProxyMessage(url)
+    return url
+  },
+  userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
+    let data = JSON.parse(proxyResData.toString('utf-8'))
+    if (userRes.statusCode !== 200) {
+      data['responseCode'] = userRes.statusCode
+      return data
+    } else {
+      let res = matrixMapper.map(data, outArray, fromPoints, toPoints, points)
       return JSON.stringify(res)
     }
   }
