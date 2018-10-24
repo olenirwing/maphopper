@@ -75,12 +75,13 @@ Along with those parameters, you can pass a `contours_colors` parameter:
   If the mapper can't find a color for the given polygon in your passed array of colors, the default color will be `#ff0000`(red)
   
 #### Important: (contours_minutes)
-There is no direct way to tell GH in which time intervals you want a polygon to be calculated. You can only pass the number of `buckets`. The contours_minutes property of the Mapbox Response is calculated by the proxy under the assumption that at GH the calculation is proportional.
+There is no direct way to tell GH in which time intervals you want a polygon to be calculated. You can only pass the number of `buckets`. The contours_minutes property of the Mapbox Response is calculated by the mapper under the assumption that at GH the calculation is proportional.
+
 ##### Example:
 passed parameters: `time_limit=400`, `buckets=4`
 returns polygons with time limits of: 100, 200, 300, 400
 
-### Example Request:
+### Example Request
 `http://localhost:3000/api/1/isochrone?point=51.131108,12.414551&key=[GH_ACCESSKEY]&debug=true&time_limit=600&buckets=4`
 
 
@@ -94,3 +95,9 @@ See the [GH Matrix Doc](https://graphhopper.com/api/1/docs/matrix/) for informat
 
 passing "weights" in the `out_arrays` parameter will be ignored for the conversion, as the Mapbox Matrix API can only return durations and distances matrixes.
 All other official parameters are supported. 
+
+### Example Request
+`http://localhost:3000/api/1/matrix?type=json&vehicle=car&debug=true&out_array=times&out_array=distances&key=[GH_ACCESSKEY]&from_point=49.932707,11.588051&to_point=50.118817,11.983337&from_point=50.241935,10.747375&to_point=50.118817,11.9834`
+
+
+
