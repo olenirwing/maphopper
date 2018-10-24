@@ -6,12 +6,13 @@ It modifies the response you get from the Graphhoppper API and returns a fully f
 <i>available as a <a href="https://hub.docker.com/r/gadda27/maphopper/">Docker container</a> at "gadda27/maphopper".</i>
 ## Supported APIs
 
-Graphhopper Routing API => Mapbox Directions API
+##### Graphhopper Routing API => Mapbox Directions API
 
-Graphhopper Route Optimization API => Mapbox Optimization API
+##### Graphhopper Route Optimization API => Mapbox Optimization API
 
-Graphhopper Isochrone API => Mapbox Isochrone API
+##### Graphhopper Isochrone API => Mapbox Isochrone API
 
+##### Graphhopper Matrix API => Mapbox Matrix API
 
 ### Usage
 
