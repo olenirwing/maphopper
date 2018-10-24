@@ -73,7 +73,7 @@ proxyService.use('/api/1/vrp', proxy(GH_BASE, {
   },
   userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
     let data = JSON.parse(proxyResData.toString('utf-8'))
-    if (userRes.statusCode !== 200) {
+    if (userRes.statusCode !== 200 || data.status !== 'finished') {
       data['responseCode'] = userRes.statusCode
       return data
     } else {

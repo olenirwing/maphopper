@@ -1,69 +1,3 @@
-//
-//
-//
-//
-// {
-//     "code": "Ok",
-//     "waypoints": [
-//         {
-//             "location": [ -6.80897, 62.000075 ],
-//             "waypoint_index": 0,
-//             "name": "Kirkjubøarvegur",
-//             "trips_index": 0
-//         },
-//         {
-//             "location": [ -6.802374, 62.004142 ],
-//             "waypoint_index": 1,
-//             "name": "Marknagilsvegur",
-//             "trips_index": 0
-//         }
-//     ],
-//     "trips": [
-//         {
-//             "distance": 1660.8,
-//             "duration": 153,
-//             "legs": [
-//                 {
-//                     "summary": "",
-//                     "duration": 77.3,
-//                     "steps": [],
-//                     "distance": 830.4
-//                 },
-//                 {
-//                     "distance": 830.4,
-//                     "steps": [],
-//                     "duration": 75.7,
-//                     "summary": ""
-//                 }
-//             ],
-//             "geometry": "oklyJ`{ph@yBuY_F{^_FxJoBrBs@d@mATlAUr@e@nBsB~EyJ~Ez^xBtY"
-//         }
-//     ]
-// }
-//
-//
-// {
-//   "type": "service",
-//   "id": "munich",
-//   "location_id": "munich",
-//   "address": {
-//     "location_id": "munich",
-//     "name": "Meindlstraße 11c",
-//     "lat": 48.145,
-//     "lon": 11.57
-//   },
-//   "arr_time": 17985,
-//   "end_time": 17985,
-//   "waiting_time": 0,
-//   "distance": 587746,
-//   "driving_time": 17985,
-//   "load_before": [
-//     0
-//   ],
-//   "load_after": [
-//     0
-//   ]
-// },
 const polyline = require('@mapbox/polyline')
 
 let allActivities
@@ -135,7 +69,6 @@ function getSingleTrip (solution) {
 
 function getGeometry (solution) {
   let bool = isDetailedGeometry(solution)
-  console.log(bool)
   let poly = polyline.encode(getAdaptedCoordinates(solution.routes, bool))
   return poly
 }
@@ -194,9 +127,14 @@ function getSingleLeg (activity) {
 
 function getSummary (activity) {
   let nextActivity = getNextActivity(activity)
+  let to
   let from = getActivityName(activity)
-  let to = getActivityName(nextActivity)
-  return ''
+  try {
+    to = getActivityName(nextActivity)
+  } catch (e) {
+    to = ''
+  }
+  return from + ' to ' + to
 }
 function getNextActivity (activity) {
   let index = allActivities.indexOf(activity)
