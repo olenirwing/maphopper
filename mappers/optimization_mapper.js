@@ -60,7 +60,7 @@ function getTrips (solution) {
 function getSingleTrip (solution) {
   let trip = {
     'distance': solution.distance,
-    'duration': solution.time / 1000,
+    'duration': solution.time,
     'geometry': getGeometry(solution),
     'legs': getLegs()
   }
@@ -74,6 +74,7 @@ function getGeometry (solution) {
 }
 
 function isDetailedGeometry (solution) {
+  console.log(solution.routes[0])
   if (solution.routes[0].points !== undefined) {
     return true
   } else { return false }
@@ -89,16 +90,13 @@ function getAdaptedCoordinates (routes, detailed = false) {
       })
     })
   } else {
+    console.log('detailed', detailed)
     allActivities.map(activity => {
       let pair
       let newPair
-      activity.points.map(point => {
-        pair = getLocation(activity)
-        newPair = [pair[1], pair[0]]
-
-        // let newPair = [pair[1] * 10, pair[0] * 10]
-        newCoordinates.push(newPair)
-      })
+      pair = getLocation(activity)
+      newPair = [pair[1], pair[0]]
+      newCoordinates.push(newPair)
     })
   }
   return newCoordinates
@@ -117,7 +115,7 @@ function getLegs () {
 
 function getSingleLeg (activity) {
   let leg = {
-    'summary': getSummary(),
+    'summary': getSummary(activity),
     'duration': getActivityDuration(activity),
     'steps': [],
     'distance': getActivityDistance(activity)
