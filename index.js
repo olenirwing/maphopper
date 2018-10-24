@@ -2,10 +2,10 @@ const express = require('express')
 const proxy = require('express-http-proxy')
 const proxyService = express()
 const port = 3000
-const mapper = require('./directions_mapper')
-const isoMapper = require('./isochrone_mapper')
-const optiMapper = require('./optimization_mapper')
-const matrixMapper = require('./matrix_mapper')
+const mapper = require('./mappers/directions_mapper')
+const isoMapper = require('./mappers/isochrone_mapper')
+const optiMapper = require('./mappers/optimization_mapper')
+const matrixMapper = require('./mappers/matrix_mapper')
 
 const GH_BASE = 'https://graphhopper.com'
 
@@ -94,7 +94,6 @@ let outArray
 let fromPoints
 let toPoints
 let points
-
 proxyService.use('/api/1/matrix', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
     let url = req.url.replace('/', '/api/1/matrix')

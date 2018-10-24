@@ -1,5 +1,4 @@
 var polyline = require('@mapbox/polyline')
-var bearingCalc = require('./bearingCalc')
 
 var allInstructions
 var allCoordinates
@@ -228,7 +227,7 @@ function getSingleIntersection (coordinate, nextCoordinate) {
       true
     ],
     'bearings': [
-      bearingCalc.bearing(coordinate[1], coordinate[0], nextCoordinate[1], nextCoordinate[0])
+      calculateBearing(coordinate[1], coordinate[0], nextCoordinate[1], nextCoordinate[0])
     ],
     'location': coordinate
   }
@@ -542,7 +541,7 @@ function getBearingBefore (instruction) {
     // this results in a more accurate bearing, as the intersection is closer to the maneuever
       bearingBfP1 = allCoordinatesGEO[instruction.interval[1] - 1] // the last intersection before the Manuever
     }
-    var bearingBf = bearingCalc.bearing(bearingBfP1[0], bearingBfP1[1], bearingBfP2[0], bearingBfP2[1])
+    var bearingBf = calculateBearing(bearingBfP1[0], bearingBfP1[1], bearingBfP2[0], bearingBfP2[1])
     return bearingBf
   }
 }
@@ -553,7 +552,7 @@ function getBearingAfter (nextInstruction) {
   if (hasIntersections(nextInstruction)) {
     bearingAfP2 = allCoordinatesGEO[nextInstruction.interval[0] + 1]
   }
-  var bearingAf = bearingCalc.bearing(bearingAfP1[1], bearingAfP1[0], bearingAfP2[1], bearingAfP2[0])
+  var bearingAf = calculateBearing(bearingAfP1[1], bearingAfP1[0], bearingAfP2[1], bearingAfP2[0])
   return bearingAf
 }
 
@@ -637,4 +636,26 @@ function getUnitSystem () {
     default: system = 'metric'
   }
   return system
+}
+
+function toRadians (degrees) {
+  return degrees * Math.PI / 180
+}
+
+// Converts from radians to degrees.
+function toDegrees (radians) {
+  return radians * 180 / Math.PI
+}
+
+function calculateBearing (startLat, startLng, destLat, destLng) {
+  const startLatRad = toRadians(startLat)
+  const startLngRad = toRadians(startLng)
+  const destLatRad = toRadians(destLat)
+  const destLngRad = toRadians(destLng)
+
+  const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad)
+  const x = Math.cos(startLatRad) * Math.sin(destLatRad) - Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad)
+  let brng = Math.atan2(y, x)
+  brng = toDegrees(brng)
+  return (((brng + 360) % 360) | 0)
 }
