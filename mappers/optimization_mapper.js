@@ -60,7 +60,7 @@ function getTrips (solution) {
 function getSingleTrip (solution) {
   let trip = {
     'distance': solution.distance,
-    'duration': solution.time,
+    'duration': solution.transport_time,
     'geometry': getGeometry(solution),
     'legs': getLegs()
   }
