@@ -480,7 +480,7 @@ function getBannerInstructions (instruction) {
   }
   if (nextInstructionExists(nextInstruction) && isStepShort(getNextInstruction(nextInstruction))) { // adds a sub banner if the next step is really short
     var sub = getSubBanner(nextInstruction)
-    // bannerInstruction['sub'] = sub
+    bannerInstruction['sub'] = sub
   }
   return [bannerInstruction]
 }
