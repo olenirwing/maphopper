@@ -12,6 +12,7 @@
     "@mapbox/polyline": "^1.0.0",
     "express": "^4.16.3",
     "express-http-proxy": "^1.4.0",
+    "helmet": "^3.14.0",
     "jsonschema": "^1.2.4",
     "string-similarity": "^2.0.0"
   },

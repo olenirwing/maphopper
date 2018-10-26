@@ -1,7 +1,10 @@
 const express = require('express')
 const proxy = require('express-http-proxy')
 const proxyService = express()
+const helmet = require('helmet')
+
 const port = 3000
+
 const mapper = require('./mappers/directions_mapper')
 const isoMapper = require('./mappers/isochrone_mapper')
 const optiMapper = require('./mappers/optimization_mapper')
@@ -18,6 +21,8 @@ function logProxyMessage (url) {
   console.log(url)
   console.log('proxied to ' + GH_BASE)
 }
+
+proxyService.use(helmet())
 
 proxyService.use('/api/1/route', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
