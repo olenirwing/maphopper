@@ -4,6 +4,7 @@ var allInstructions
 var allCoordinates
 var allCoordinatesGEO
 var locale
+var profile
 
 const UUID = generateUuid()
 
@@ -15,12 +16,13 @@ const EXTREMELY_CLOSE = 60
 
 let departAnnouncementAlreadySaid = false
 
-exports.map = function (jsonRes, profile, _locale, mapboxKey) {
+exports.map = function (jsonRes, _profile, _locale, mapboxKey) {
   console.log('#####################')
   var paths = jsonRes.paths
   locale = _locale
+  profile = _profile
   var mapBoxResponse = {
-    'routes': getAllMapboxRoutes(paths, profile, mapboxKey),
+    'routes': getAllMapboxRoutes(paths, mapboxKey),
     'waypoints': getWaypoints(paths),
     'code': 'Ok',
     'uuid': UUID
@@ -51,12 +53,12 @@ function getWaypoints (paths) {
   return waypoints
 }
 
-function getAllMapboxRoutes (paths, profile, mapboxKey) {
-  var routes = paths.map(path => getSingleMapboxRoute(path, profile, mapboxKey))
+function getAllMapboxRoutes (paths, mapboxKey) {
+  var routes = paths.map(path => getSingleMapboxRoute(path, mapboxKey))
   return routes
 }
 
-function getSingleMapboxRoute (path, profile, mapboxKey) {
+function getSingleMapboxRoute (path, mapboxKey) {
   allInstructions = path.instructions
   allCoordinatesGEO = path.points.coordinates // coordinates in GEOJSON format (longitude, latitude)
   allCoordinates = getAdaptedCoordinates(path.points.coordinates) // (latitude,longitude)
@@ -68,8 +70,8 @@ function getSingleMapboxRoute (path, profile, mapboxKey) {
       'weight': path.time / 1000,
       'weight_name': 'routability',
       'legs': getLegs(path),
-      'routeOptions': getRouteOptions(path, profile, mapboxKey),
-      'voiceLocale': 'de-DE'
+      'routeOptions': getRouteOptions(path, mapboxKey),
+      'voiceLocale': locale
     }
   return mapBoxRoute
 }
@@ -107,15 +109,15 @@ function getLastStreetName () {
   return streetName
 }
 
-function getAdaptedCoordinates (path) {
-  var allCoordinates = path
+function getAdaptedCoordinates (coords) {
+  var allCoordinates = coords
   var index
   var len
   var newCoordinates = []
   for (index = 0, len = allCoordinates.length; index < len; ++index) {
     var pair = allCoordinates[index]
     var x = pair[1] * 10 // * 10 as a fix to use Polyline Encoding with precision 6, otherwise coordinates are off NOTE: this is only for the encoded geometry strings
-    var y = pair[0] * 10
+    var y = pair[0] * 10 // changing "geometries" in RouteOptions to polyline instead of polyline6, should do the same, but somehow doesnt
     newCoordinates[index] = [x, y]
   }
   return newCoordinates
@@ -192,7 +194,7 @@ function getSteps () {
       'distance': instruction.distance,
       'geometry': polyline.encode(sectionPoints),
       'driving_side': getDrivingSide(),
-      'mode': 'driving',
+      'mode': convertProfile(),
       'maneuver': getManeuver(instruction),
       'intersections': getIntersections(instruction),
       'voiceInstructions': getVoiceInstructions(instruction),
@@ -397,7 +399,7 @@ function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDista
     announcement += getTranslatedSentenceConnector() + nextInstruction.text
   }
   var voiceInstruction = {
-    'distanceAlongGeometry': distanceAlongGeometry, // to compensate the delay of the spoken message
+    'distanceAlongGeometry': distanceAlongGeometry,
     'announcement': departAnnouncement + announcement,
     'ssmlAnnouncement': getSsmlAnnouncement(distanceAlongGeometry, announcement, sayDistance, departAnnouncement)
   }
@@ -512,7 +514,7 @@ function getSubBanner (primaryInstruction) { // primaryInstruction = instruction
   return sub
 }
 
-function convertProfile (profile) {
+function convertProfile () {
   var mProfile
   // var driving = ["car", "small_truck", "truck", "scooter"]
   var cycling = ['bike', 'mtb', 'racingbike']
@@ -600,7 +602,7 @@ function getTranslatedSentenceConnector () {
   }
 }
 
-function getRouteOptions (path, profile, accessKey) {
+function getRouteOptions (path, accessKey) {
   let token = accessKey
   if (!accessKey) {
     token = ''
@@ -608,7 +610,7 @@ function getRouteOptions (path, profile, accessKey) {
   var routeOptions = {
     'baseUrl': 'https://api.mapbox.com',
     'user': 'mapbox',
-    'profile': convertProfile(profile),
+    'profile': convertProfile(),
     'coordinates': path.snapped_waypoints.coordinates,
     'language': locale,
     'bearings': ';',
@@ -642,7 +644,6 @@ function toRadians (degrees) {
   return degrees * Math.PI / 180
 }
 
-// Converts from radians to degrees.
 function toDegrees (radians) {
   return radians * 180 / Math.PI
 }
