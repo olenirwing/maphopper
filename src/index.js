@@ -2,7 +2,7 @@ const express = require('express')
 const proxy = require('express-http-proxy')
 const proxyService = express()
 const helmet = require('helmet')
-
+const Prometheus = require('./prometheus')
 const port = 3000
 
 const mapper = require('./mappers/directions_mapper')
@@ -11,9 +11,13 @@ const optiMapper = require('./mappers/optimization_mapper')
 const matrixMapper = require('./mappers/matrix_mapper')
 
 const GH_BASE = 'https://graphhopper.com'
+const SUCC_MSG = 'Succesful Mapping'
 
-const Prometheus = require('./prometheus')
+const bunyan = require('bunyan')
+let loggerOptions = { name: 'maphopper' }
+var log = bunyan.createLogger(loggerOptions)
 
+// PROMETHEUS
 /// The below arguments start the counter functions
 proxyService.use(Prometheus.requestCounters)
 proxyService.use(Prometheus.responseCounters)
@@ -23,8 +27,15 @@ Prometheus.injectMetricsRoute(proxyService)
 Prometheus.startCollection()
 
 function logProxyMessage (url) {
-  console.log(url)
-  console.log('proxied to ' + GH_BASE)
+  log.info('request proxied to ' + GH_BASE)
+}
+
+function logError (msg, errorCode = 0) {
+  let errorBody = { code: errorCode }
+  if (errorCode === 0) {
+    errorBody = {}
+  }
+  log.error(errorBody, msg)
 }
 
 proxyService.use(helmet())
@@ -47,14 +58,18 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
     let data = JSON.parse(proxyResData.toString('utf-8'))
     if (userRes.statusCode !== 200) {
       data['responseCode'] = userRes.statusCode
+      logError(data.message, userRes.statusCode)
       return data
     } else {
       if (pointsEncoded !== 'false') {
-        data = { 'message': 'points_encoded has to be false'
+        let msg = 'points_encoded has to be false'
+        data = { 'message': msg
         }
+        logError(msg)
         return data
       }
       var mapBoxResponse = mapper.map(data, profile, locale, mapboxkey)
+      log.info(SUCC_MSG)
       return JSON.stringify(mapBoxResponse)
     }
   }
@@ -81,6 +96,7 @@ proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
       return data
     } else {
       let res = isoMapper.map(data, totalTime, amountOfBuckets, colorString)
+      log.info(SUCC_MSG)
       return JSON.stringify(res)
     }
   }
@@ -99,6 +115,7 @@ proxyService.use('/api/1/vrp', proxy(GH_BASE, {
       return data
     } else {
       let res = optiMapper.map(data)
+      log.info(SUCC_MSG)
       return JSON.stringify(res)
     }
   }
@@ -125,10 +142,10 @@ proxyService.use('/api/1/matrix', proxy(GH_BASE, {
       return data
     } else {
       let res = matrixMapper.map(data, outArray, fromPoints, toPoints, points)
+      log.info(SUCC_MSG)
       return JSON.stringify(res)
     }
   }
 }))
-
-console.log('Listening on port ' + port)
+log.info('Listening on port ' + port)
 proxyService.listen(port)

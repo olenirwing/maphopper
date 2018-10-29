@@ -17,7 +17,6 @@ const EXTREMELY_CLOSE = 60
 let departAnnouncementAlreadySaid = false
 
 exports.map = function (jsonRes, _profile, _locale, mapboxKey) {
-  console.log('#####################')
   var paths = jsonRes.paths
   locale = _locale
   profile = _profile

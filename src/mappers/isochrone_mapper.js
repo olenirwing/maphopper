@@ -66,7 +66,6 @@ function getContourMinutes (polygon) {
   let fraction = (bucket + 1) / (amountOfBuckets)
   let time = fraction * totalTime
   let minutes = Math.round(time / 60)
-  console.log(bucket, amountOfBuckets, fraction, time, minutes)
 
   return minutes
 }
