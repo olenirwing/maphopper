@@ -12,10 +12,15 @@ const matrixMapper = require('./mappers/matrix_mapper')
 
 const GH_BASE = 'https://graphhopper.com'
 
-let profile
-let locale
-let mapboxkey
-let pointsEncoded
+const Prometheus = require('./prometheus')
+
+/// The below arguments start the counter functions
+proxyService.use(Prometheus.requestCounters)
+proxyService.use(Prometheus.responseCounters)
+// Enable metrics endpoint
+Prometheus.injectMetricsRoute(proxyService)
+// Enable collection of default metrics
+Prometheus.startCollection()
 
 function logProxyMessage (url) {
   console.log(url)
@@ -24,6 +29,10 @@ function logProxyMessage (url) {
 
 proxyService.use(helmet())
 
+let profile
+let locale
+let mapboxkey
+let pointsEncoded
 proxyService.use('/api/1/route', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
     profile = req.query.vehicle
