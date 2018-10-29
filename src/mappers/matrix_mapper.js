@@ -1,4 +1,4 @@
-exports.map = function (res, outArray, fromPoints, toPoints, points) {
+exports.getMapping = function (res, outArray, fromPoints, toPoints, points) {
   points = makePointsArray(points)
   let usedPointsSource = points
   let usedPointsDestinations = points

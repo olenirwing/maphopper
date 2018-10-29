@@ -68,7 +68,7 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
         logError(msg)
         return data
       }
-      var mapBoxResponse = mapper.map(data, profile, locale, mapboxkey)
+      var mapBoxResponse = mapper.getMapping(data, profile, locale, mapboxkey)
       log.info(SUCC_MSG)
       return JSON.stringify(mapBoxResponse)
     }
@@ -95,7 +95,7 @@ proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
       data['responseCode'] = userRes.statusCode
       return data
     } else {
-      let res = isoMapper.map(data, totalTime, amountOfBuckets, colorString)
+      let res = isoMapper.getMapping(data, totalTime, amountOfBuckets, colorString)
       log.info(SUCC_MSG)
       return JSON.stringify(res)
     }
@@ -114,7 +114,7 @@ proxyService.use('/api/1/vrp', proxy(GH_BASE, {
       data['responseCode'] = userRes.statusCode
       return data
     } else {
-      let res = optiMapper.map(data)
+      let res = optiMapper.getMapping(data)
       log.info(SUCC_MSG)
       return JSON.stringify(res)
     }
@@ -141,7 +141,7 @@ proxyService.use('/api/1/matrix', proxy(GH_BASE, {
       data['responseCode'] = userRes.statusCode
       return data
     } else {
-      let res = matrixMapper.map(data, outArray, fromPoints, toPoints, points)
+      let res = matrixMapper.getMapping(data, outArray, fromPoints, toPoints, points)
       log.info(SUCC_MSG)
       return JSON.stringify(res)
     }

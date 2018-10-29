@@ -2,7 +2,7 @@ const polyline = require('@mapbox/polyline')
 
 let allActivities
 
-exports.map = function (response) {
+exports.getMapping = function (response) {
   allActivities = response.solution.routes[0].activities
   let frame = {
     'code': 'Ok',

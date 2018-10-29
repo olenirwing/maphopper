@@ -3,7 +3,7 @@ let amountOfBuckets
 let totalTime
 let contoursColors
 
-exports.map = function (response, time, buckets, colors) {
+exports.getMapping = function (response, time, buckets, colors) {
   amountOfBuckets = buckets
   totalTime = time
   try {
