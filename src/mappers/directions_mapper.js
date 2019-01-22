@@ -336,8 +336,8 @@ function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDista
 }
 
 function getSsmlAnnouncement (distanceAlongGeometry, announcement, sayDistance, departAnnouncement) {
-  var distanceString = sayDistance ? getTranslatedDistance(distanceAlongGeometry) : ''
-  var ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + departAnnouncement + distanceString + announcement + ' </prosody></amazon:effect></speak>'
+  const distanceString = sayDistance ? getTranslatedDistance(distanceAlongGeometry) : ''
+  const ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + departAnnouncement + distanceString + announcement + ' </prosody></amazon:effect></speak>'
   return ssml
 }
 
@@ -345,38 +345,26 @@ const shouldAddNextVoiceInstruction = (instruction, nextInstruction) => nextInst
 
 const nextInstructionExists = instruction => getNextInstruction(instruction) !== null
 
-function isStepShort (instruction) {
-  var bool = false
-  if (!(instruction === null)) {
-    if (instruction.distance < EXTREMELY_CLOSE) {
-      bool = true
-    }
-  }
-  return bool
-}
+const isStepShort = (instruction) => instruction !== null && instruction.distance < EXTREMELY_CLOSE
 
 function getBannerInstructions (instruction) {
-  var nextInstruction = getNextInstruction(instruction)
-  var distanceAlongGeometry
-  var text
-  var modifier
-  var componentsText
   if (isLastInstruction(instruction)) {
     return []
   }
 
-  if (nextInstruction !== null) {
-    distanceAlongGeometry = instruction.distance
-    modifier = getMapboxModifier(nextInstruction.sign)
-    if (nextInstruction.street_name === '') { // Target reached is in 'text' key, not street_name
-      componentsText = nextInstruction.text
-      text = nextInstruction.text
-    } else {
-      componentsText = nextInstruction.street_name
-      text = nextInstruction.street_name
-    }
+  const nextInstruction = getNextInstruction(instruction)
+  const distanceAlongGeometry = nextInstructionExists(instruction) ? instruction.distance : 0
+  var modifier = nextInstructionExists(instruction) ? getMapboxModifier(nextInstruction.sign) : ''
+
+  var text
+  var componentsText
+  if (nextInstruction && nextInstruction.streetName === '') {
+    componentsText = nextInstruction.text
+    text = nextInstruction.text // Target reached is in 'text' key, not street_name
+  } else if (nextInstruction && nextInstruction.streetName !== '') {
+    componentsText = nextInstruction.street_name
+    text = nextInstruction.street_name
   } else {
-    distanceAlongGeometry = 0
     text = instruction.text
     modifier = ''
     componentsText = instruction.text
@@ -411,9 +399,7 @@ function addRoundaboutProperties (bannerInstruction, usedInstruction) {
 
 function convertRadianToDegree (turnAngle) {
   let degrees = turnAngle * (180 / Math.PI)
-  degrees = Math.abs(degrees)
-  degrees = Math.round(degrees)
-  return degrees
+  return Math.round(Math.abs(degrees))
 }
 
 function getSubBanner (primaryInstruction) { // primaryInstruction = instruction used for primary banner
