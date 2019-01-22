@@ -7,6 +7,7 @@ var allCoordinates
 var allCoordinatesGEO
 var locale
 var profile
+let departAnnouncementAlreadySaid = false
 
 const UUID = generateUuid()
 
@@ -16,8 +17,6 @@ const CLOSE = 400
 const VERY_CLOSE = 200
 const EXTREMELY_CLOSE = 60
 const DISTANCE_TYPES = [FAR, MID, CLOSE, VERY_CLOSE, EXTREMELY_CLOSE]
-
-let departAnnouncementAlreadySaid = false
 
 exports.getMapping = function (jsonRes, _profile, _locale, mapboxKey) {
   var paths = jsonRes.paths
@@ -503,10 +502,7 @@ function getTranslatedSentenceConnector () {
 }
 
 function getRouteOptions (path, accessKey) {
-  let token = accessKey
-  if (!accessKey) {
-    token = ''
-  }
+  let token = (accessKey !== undefined) ? accessKey : ''
   var routeOptions = {
     'baseUrl': 'https://api.mapbox.com',
     'user': 'mapbox',
