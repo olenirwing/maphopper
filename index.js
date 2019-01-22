@@ -2,13 +2,13 @@ const express = require('express')
 const proxy = require('express-http-proxy')
 const proxyService = express()
 const helmet = require('helmet')
-const Prometheus = require('./prometheus')
+const Prometheus = require('./src/prometheus')
 const port = 3000
 
-const mapper = require('./mappers/directions_mapper')
-const isoMapper = require('./mappers/isochrone_mapper')
-const optiMapper = require('./mappers/optimization_mapper')
-const matrixMapper = require('./mappers/matrix_mapper')
+const mapper = require('./src/mappers/directions_mapper')
+const isoMapper = require('./src/mappers/isochrone_mapper')
+const optiMapper = require('./src/mappers/optimization_mapper')
+const matrixMapper = require('./src/mappers/matrix_mapper')
 
 const GH_BASE = 'https://graphhopper.com'
 const SUCC_MSG = 'Succesful Mapping'
