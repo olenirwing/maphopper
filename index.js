@@ -75,7 +75,6 @@ proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
     return url
   },
   userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
-    logProxyMessage(userReq)
     let data = JSON.parse(proxyResData.toString('utf-8'))
     if (userRes.statusCode !== 200) {
       data['responseCode'] = userRes.statusCode

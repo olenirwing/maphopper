@@ -24,59 +24,30 @@ exports.getMapping = function (res, outArray, fromPoints, toPoints, points) {
 }
 
 function makePointsArray (points) {
-  let base
-  if (typeof points === typeof []) {
-    base = points
-  } else {
-    base = [points]
-  }
+  let base = (typeof points === typeof []) ? points : [points]
   try {
-    let pointsArray = []
-    base.map(point => {
+    let pointsArray = base.map(point => {
       let lon = point.split(',')[0]
       let lat = point.split(',')[1]
-      pointsArray.push([lon, lat])
+      return [lon, lat]
     })
     return pointsArray
   } catch (e) { return [] }
 }
 
-function getSources (points) {
-  let sources = []
-  points.map(point => {
-    sources.push(getSingleSource(point))
-  })
-  return sources
-}
+const getSources = points => points.map(point => getSingleSource(point))
 
-function getSingleSource (point) {
-  let source = {
-    'name': '',
-    'location': point
-  }
-  return source
-}
+const getSingleSource = point => ({
+  'name': '',
+  'location': point
+})
 
-function getDestinations (points) {
-  let destinations = []
-  points.map(point => {
-    destinations.push(getSingleDestination(point))
-  })
-  return destinations
-}
+const getDestinations = points => points.map(point => getSingleDestination(point))
 
-function getSingleDestination (point) {
-  let destination = {
-    'name': '',
-    'location': point
-  }
-  return destination
-}
+const getSingleDestination = point => ({
+  'name': '',
+  'location': point
+})
 
-function getDurations (res) {
-  return res.times
-}
-
-function getDistances (res) {
-  return res.distances
-}
+const getDurations = res => res.times
+const getDistances = res => res.distances

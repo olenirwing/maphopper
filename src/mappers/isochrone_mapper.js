@@ -6,12 +6,7 @@ let contoursColors
 exports.getMapping = function (response, time, buckets, colors) {
   amountOfBuckets = buckets
   totalTime = time
-  try {
-    contoursColors = colors.split(',')
-  } catch (e) {
-    contoursColors = []
-  }
-  contoursColors = colors
+  contoursColors = colors !== undefined ? colors.split(',') : []
   let polygons = response.polygons
   let mapboxIsoRes = {
     'features': getFeatures(polygons),
@@ -21,10 +16,7 @@ exports.getMapping = function (response, time, buckets, colors) {
 }
 
 function getFeatures (polygons, colors) {
-  let features = []
-  polygons.map(polygon => {
-    features.push(createFeature(polygon))
-  })
+  let features = polygons.map(polygon => createFeature(polygon))
   return features
 }
 
@@ -55,7 +47,7 @@ function getContourColor (polygon) {
   try {
     color = contoursColors[bucket]
   } catch (e) {
-    color = 'ff0000'
+    color = '#ff0000'
   }
   color = '#' + color
   return color
