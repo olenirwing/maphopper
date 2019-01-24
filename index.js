@@ -5,7 +5,7 @@ const helmet = require('helmet')
 const Prometheus = require('./src/prometheus')
 const port = 3000
 
-const mapper = require('./src/mappers/directions_mapper')
+const directionsMapper = require('./src/mappers/directions_mapper')
 const isoMapper = require('./src/mappers/isochrone_mapper')
 const optiMapper = require('./src/mappers/optimization_mapper')
 const matrixMapper = require('./src/mappers/matrix_mapper')
@@ -40,16 +40,8 @@ function logError (msg, errorCode = 0) {
 
 proxyService.use(helmet())
 
-let profile
-let locale
-let mapboxkey
-let pointsEncoded
 proxyService.use('/api/1/route', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
-    profile = req.query.vehicle
-    locale = req.query.locale
-    mapboxkey = req.query.mapboxkey
-    pointsEncoded = req.query.points_encoded
     let url = req.url.replace('/', '/api/1/route')
     logProxyMessage(url)
     return url
@@ -61,14 +53,14 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
       logError(data.message, userRes.statusCode)
       return data
     } else {
-      if (pointsEncoded !== 'false') {
+      if (userReq.query.points_encoded !== 'false') {
         let msg = 'points_encoded has to be false'
         data = { 'message': msg
         }
         logError(msg)
         return data
       }
-      var mapBoxResponse = mapper.getMapping(data, profile, locale, mapboxkey)
+      var mapBoxResponse = directionsMapper.getMapping(data, userReq.query.profile, userReq.query.locale, userReq.query.mapboxkey)
       log.info(SUCC_MSG)
       return JSON.stringify(mapBoxResponse)
     }
@@ -76,17 +68,10 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
 })
 )
 
-let amountOfBuckets
-let totalTime
-let colorString
 proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
-    totalTime = req.query.time_limit
-    amountOfBuckets = req.query.buckets
-    colorString = req.query.contours_colors
     let url = req.url.replace('/', '/api/1/isochrone')
     logProxyMessage(url)
-
     return url
   },
   userResDecorator: function (proxyRes, proxyResData, userReq, userRes) {
@@ -95,7 +80,7 @@ proxyService.use('/api/1/isochrone', proxy(GH_BASE, {
       data['responseCode'] = userRes.statusCode
       return data
     } else {
-      let res = isoMapper.getMapping(data, totalTime, amountOfBuckets, colorString)
+      let res = isoMapper.getMapping(data, userReq.query.time_limit, userReq.query.buckets, userReq.query.contours_colors)
       log.info(SUCC_MSG)
       return JSON.stringify(res)
     }
@@ -121,17 +106,9 @@ proxyService.use('/api/1/vrp', proxy(GH_BASE, {
   }
 }))
 
-let outArray
-let fromPoints
-let toPoints
-let points
 proxyService.use('/api/1/matrix', proxy(GH_BASE, {
   proxyReqPathResolver (req) {
     let url = req.url.replace('/', '/api/1/matrix')
-    outArray = req.query.out_array
-    fromPoints = req.query.from_point
-    toPoints = req.query.to_point
-    points = req.query.point
     logProxyMessage(url)
     return url
   },
@@ -141,7 +118,8 @@ proxyService.use('/api/1/matrix', proxy(GH_BASE, {
       data['responseCode'] = userRes.statusCode
       return data
     } else {
-      let res = matrixMapper.getMapping(data, outArray, fromPoints, toPoints, points)
+      let res = matrixMapper.getMapping(data, userReq.query.out_array, userReq.query.from_point
+        , userReq.query.to_point, userReq.query.point)
       log.info(SUCC_MSG)
       return JSON.stringify(res)
     }

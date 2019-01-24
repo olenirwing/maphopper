@@ -1,10 +1,13 @@
 var polyline = require('@mapbox/polyline')
 
+Array.range = (start, end) => Array.from({ length: (end - start) }, (v, k) => k + start)
+
 var allInstructions
 var allCoordinates
 var allCoordinatesGEO
 var locale
 var profile
+let departAnnouncementAlreadySaid = false
 
 const UUID = generateUuid()
 
@@ -13,8 +16,7 @@ const MID = 1000
 const CLOSE = 400
 const VERY_CLOSE = 200
 const EXTREMELY_CLOSE = 60
-
-let departAnnouncementAlreadySaid = false
+const DISTANCE_TYPES = [FAR, MID, CLOSE, VERY_CLOSE, EXTREMELY_CLOSE]
 
 exports.getMapping = function (jsonRes, _profile, _locale, mapboxKey) {
   var paths = jsonRes.paths
@@ -30,25 +32,15 @@ exports.getMapping = function (jsonRes, _profile, _locale, mapboxKey) {
 }
 
 function getWaypoints (paths) {
-  let waypoints = []
   let coordinates = paths[0].snapped_waypoints.coordinates
   let firstStreet = getFirstStreetName()
   let lastStreet = getLastStreetName()
-  let index = 0
-  coordinates.map(coordinatePair => {
-    let street
-    if (index === 0) {
-      street = firstStreet
-    } else {
-      street = lastStreet
-    }
-    let waypoint = {
-      'name': street,
-      'location': coordinatePair
-    }
-    index++
-    waypoints.push(waypoint)
-  })
+  let waypoints = coordinates.map((coordinatePair, index) => (
+    {
+      name: index === 0 ? firstStreet : lastStreet,
+      location: coordinatePair
+    })
+  )
   return waypoints
 }
 
@@ -76,7 +68,7 @@ function getSingleMapboxRoute (path, mapboxKey) {
 }
 
 function getLegs (path) {
-  var legs = [{
+  let legs = [{
     'distance': path.distance,
     'duration': path.time / 1000,
     'summary': getSummary(),
@@ -98,25 +90,19 @@ function getFirstStreetName () {
 }
 
 function getLastStreetName () {
-  let index
-  if (allInstructions.length > 1) {
-    index = allInstructions.length - 2
-  } else {
-    index = 1
-  }
+  let index = (allInstructions.length > 1) ? allInstructions.length - 2 : 1
   let streetName = allInstructions[index].street_name
   return streetName
 }
 
 function getAdaptedCoordinates (coords) {
-  var allCoordinates = coords
   var index
   var len
   var newCoordinates = []
-  for (index = 0, len = allCoordinates.length; index < len; ++index) {
-    var pair = allCoordinates[index]
+  for (index = 0, len = coords.length; index < len; ++index) {
+    var pair = coords[index]
     var x = pair[1] * 10 // * 10 as a fix to use Polyline Encoding with precision 6, otherwise coordinates are off NOTE: this is only for the encoded geometry strings
-    var y = pair[0] * 10 // changing "geometries" in RouteOptions to polyline instead of polyline6, should do the same, but somehow doesnt
+    var y = pair[0] * 10 // changing "geometries" in RouteOptions to polyline instead of polyline6, should do the same, but somehow doesnt, which is a Mapbox related problem
     newCoordinates[index] = [x, y]
   }
   return newCoordinates
@@ -153,41 +139,16 @@ function getMapboxModifier (sign) {
   return modifier
 }
 
-function isFirstInstruction (instruction) {
-  var bool = false
-  if (getPreviousInstruction(instruction, allInstructions) === null) {
-    bool = true
-  }
-  return bool
-}
-
-function isLastInstruction (instruction) {
-  var bool = false
-  if (getNextInstruction(instruction, allInstructions) === null) {
-    bool = true
-  }
-  return bool
-}
+const isFirstInstruction = instruction => getPreviousInstruction(instruction, allInstructions) === null
+const isLastInstruction = instruction => getNextInstruction(instruction, allInstructions) === null
 
 function getSteps () {
-  var steps = []
-  var index
-  var len
-  for (index = 0, len = allInstructions.length; index < len; ++index) {
-    var instruction = allInstructions[index]
-
-    var sectionPoints = [] // for geometry of this step
-
+  return allInstructions.map((instruction) => {
     let allPointIndexes = Array.range(instruction.interval[0], instruction.interval[1] + 1)
-    allPointIndexes.map(index => {
-      sectionPoints.push(allCoordinates[index])
-    })
-    let streetName = instruction.street_name
-    if (isLastInstruction(instruction)) {
-      streetName = getLastStreetName()
-    }
-    var step = {
-      'name': streetName,
+    let sectionPoints = allPointIndexes.map(index => allCoordinates[index])
+
+    return {
+      'name': isLastInstruction(instruction) ? getLastStreetName() : instruction.street_name,
       'duration': instruction.time / 1000,
       'weight': instruction.time / 1000,
       'distance': instruction.distance,
@@ -199,30 +160,25 @@ function getSteps () {
       'voiceInstructions': getVoiceInstructions(instruction),
       'bannerInstructions': getBannerInstructions(instruction)
     }
-    steps.push(step)
-  }
-  return steps
+  })
 }
 
 function getIntersections (instruction) {
   let rangeStart = instruction.interval[0] + 1
   let rangeEnd = instruction.interval[1]
-  let intersections = []
-  if (hasIntersections(instruction)) {
-    Array.range(rangeStart, rangeEnd).map(index => {
+  let intersections = hasIntersections(instruction)
+    ? Array.range(rangeStart, rangeEnd).map(index => {
       let coordinate = allCoordinatesGEO[index]
       let nextCoordinate = allCoordinatesGEO[index + 1]
-      let inter = getSingleIntersection(coordinate, nextCoordinate)
-      intersections.push(inter)
+      return getSingleIntersection(coordinate, nextCoordinate)
     })
-  } else {
-    intersections.push(createDummyIntersection(instruction))
-  }
+    : [createDummyIntersection(instruction)]
+
   return intersections
 }
 
 function getSingleIntersection (coordinate, nextCoordinate) {
-  let intersection = {
+  return {
     'out': 0,
     'entry': [
       true
@@ -232,20 +188,12 @@ function getSingleIntersection (coordinate, nextCoordinate) {
     ],
     'location': coordinate
   }
-
-  return intersection
 }
 
 function hasIntersections (instruction) {
   let numberOfInstructions = instruction.interval[1] - instruction.interval[0] - 1
-  if (numberOfInstructions > 0) {
-    return true
-  } else {
-    return false
-  }
+  return (numberOfInstructions > 0)
 }
-
-Array.range = (start, end) => Array.from({ length: (end - start) }, (v, k) => k + start)
 
 function createDummyIntersection (instruction) {
   let bearing = getBearingBefore(instruction)
@@ -269,34 +217,30 @@ function createDummyIntersection (instruction) {
 function getDrivingSide () {
   // this function should be used with a country determinator, as locale is only for language settings
   // so not yet supported
-  let leftSide = ['en-gb', 'en-au', 'mt']
-  if (leftSide.includes(locale.toLowerCase())) {
-    return 'left'
-  } else {
-    return 'right'
-  }
+  let leftSideCountries = ['en-gb', 'en-au', 'mt']
+  return leftSideCountries.includes(locale.toLowerCase()) ? 'left' : 'right'
 }
 
 function getManeuver (instruction) {
-  var type = getType(instruction)
   var modifier
-  if (type === 'arrive' && instruction.last_heading !== undefined) {
-    modifier = getDirectionOfHeading(instruction.last_heading)
-  } else {
-    modifier = getMapboxModifier(instruction.sign)
+  let type = getType(instruction)
+  switch (type) {
+    case 'arrive':
+      modifier = (instruction.last_heading !== undefined) ? getDirectionOfHeading(instruction.last_heading) : getMapboxModifier(instruction.sign)
+      break
+    default:
+      modifier = getMapboxModifier(instruction.sign)
+      break
   }
-  var maneuver = {
+  return {
     'bearing_before': getBearingBefore(instruction),
     'bearing_after': getBearingAfter(instruction),
     'location': allCoordinatesGEO[instruction.interval[0]],
     'modifier': modifier,
     'type': type,
-    'instruction': instruction.text
+    'instruction': instruction.text,
+    'exit': type === 'roundabout' ? instruction.exit_number : undefined
   }
-  if (type === 'roundabout') {
-    maneuver['exit'] = instruction.exit_number
-  }
-  return maneuver
 }
 
 function getDirectionOfHeading (angle) {
@@ -307,75 +251,60 @@ function getDirectionOfHeading (angle) {
 function getType (instruction) {
   if (instruction === null) {
     return 'arrive'
+  }
+  if (isFirstInstruction(instruction)) {
+    return 'depart'
   } else {
-    if (isFirstInstruction(instruction)) {
-      return 'depart'
-    } else {
-      switch (instruction.sign) {
-        case 4: // FINISH
-        case 5: // REACHED_VIA
-          return 'arrive'
-        case 6:// USE_ROUNDABOUT
-          return 'roundabout'
-        case -7:
-        case 7: return 'continue'
-        default:
-          return 'turn'
-      }
+    switch (instruction.sign) {
+      case 4: // FINISH
+      case 5: // REACHED_VIA
+        return 'arrive'
+      case 6:// USE_ROUNDABOUT
+        return 'roundabout'
+      case -7:
+      case 7: return 'continue'
+      default:
+        return 'turn'
     }
   }
 }
 
 function getPreviousInstruction (instruction) {
-  var index = allInstructions.indexOf(instruction)
-  var prevInstruction = null
-  if (index !== 0) {
-    index = index - 1
-    prevInstruction = allInstructions[index]
-  }
-  return prevInstruction
+  let index = allInstructions.indexOf(instruction)
+  return (index !== 0) ? allInstructions[index - 1] : null
 }
 
 function getNextInstruction (instruction) {
   var index = allInstructions.indexOf(instruction)
-  var nextInstruction = null
-  if (index !== allInstructions.length - 1) {
-    index = index + 1
-    nextInstruction = allInstructions[index]
-  }
-  return nextInstruction
+  return (index !== allInstructions.length - 1) ? allInstructions[index + 1] : null
 }
 
 function getVoiceInstructions (instruction) {
   var voiceInstructions = []
-  var distance = Math.floor(instruction.distance / 10) * 10
-  departAnnouncementAlreadySaid = false
-  if (isFirstInstruction(instruction)) {
-    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, false))
-  }
   if (isLastInstruction(instruction)) {
     return voiceInstructions
   }
-  // different milestones are added for voice instructions, so the instruction is repeated after certain distances
-  if (distance > FAR) {
-    voiceInstructions.push(getSingleVoiceInstruction(FAR, instruction))
+  var distanceToNextSection = Math.floor(instruction.distance / 10) * 10
+  departAnnouncementAlreadySaid = false
+  if (isFirstInstruction(instruction)) {
+    voiceInstructions.push(getSingleVoiceInstruction(distanceToNextSection, instruction, false))
   }
-  if (distance > MID) {
-    voiceInstructions.push(getSingleVoiceInstruction(MID, instruction))
-  }
-  if (distance > CLOSE) {
-    voiceInstructions.push(getSingleVoiceInstruction(CLOSE, instruction))
-  } else if (distance > VERY_CLOSE) {
-    voiceInstructions.push(getSingleVoiceInstruction(VERY_CLOSE, instruction))
-  }
-  let sayDist = false
-  if (isLastInstruction(getNextInstruction(instruction))) { sayDist = true }
-  if (distance < EXTREMELY_CLOSE) {
-    voiceInstructions.push(getSingleVoiceInstruction(distance, instruction, sayDist))
-  } else {
-    var distanceAlongGeometry = EXTREMELY_CLOSE // 60m before turn final announcement is made
-    voiceInstructions.push(getSingleVoiceInstruction(distanceAlongGeometry, instruction, sayDist))
-  }
+  DISTANCE_TYPES.map(distanceType => {
+    switch (distanceType) {
+      case EXTREMELY_CLOSE:
+        if (distanceToNextSection < EXTREMELY_CLOSE) {
+          // the voice shouldnt say the distance left if the distance is < EXTREMELY_CLOSE
+          voiceInstructions.push(getSingleVoiceInstruction(distanceToNextSection, instruction, isLastInstruction(getNextInstruction(instruction))))
+        } else {
+          voiceInstructions.push(getSingleVoiceInstruction(EXTREMELY_CLOSE, instruction, isLastInstruction(getNextInstruction(instruction)))) //  60m before turn final announcement is made
+        }
+        break
+      default:
+        if (distanceToNextSection > distanceType) {
+          voiceInstructions.push(getSingleVoiceInstruction(distanceType, instruction))
+        }
+    }
+  })
   return voiceInstructions
 }
 
@@ -406,62 +335,35 @@ function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDista
 }
 
 function getSsmlAnnouncement (distanceAlongGeometry, announcement, sayDistance, departAnnouncement) {
-  var distanceString = ''
-  if (sayDistance) {
-    distanceString = getTranslatedDistance(distanceAlongGeometry)
-  }
-  var ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + departAnnouncement + distanceString + announcement + ' </prosody></amazon:effect></speak>'
+  const distanceString = sayDistance ? getTranslatedDistance(distanceAlongGeometry) : ''
+  const ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + departAnnouncement + distanceString + announcement + ' </prosody></amazon:effect></speak>'
   return ssml
 }
 
-function shouldAddNextVoiceInstruction (instruction, nextInstruction) {
-  if (nextInstructionExists(instruction) && isStepShort(nextInstruction) && !isLastInstruction(nextInstruction)) {
-    return true
-  } else {
-    return false
-  }
-}
+const shouldAddNextVoiceInstruction = (instruction, nextInstruction) => nextInstructionExists(instruction) && isStepShort(nextInstruction) && !isLastInstruction(nextInstruction)
 
-function nextInstructionExists (instruction) {
-  if (getNextInstruction(instruction) === null) {
-    return false
-  } else {
-    return true
-  }
-}
+const nextInstructionExists = instruction => getNextInstruction(instruction) !== null
 
-function isStepShort (instruction) {
-  var bool = false
-  if (!(instruction === null)) {
-    if (instruction.distance < EXTREMELY_CLOSE) {
-      bool = true
-    }
-  }
-  return bool
-}
+const isStepShort = (instruction) => instruction !== null && instruction.distance < EXTREMELY_CLOSE
 
 function getBannerInstructions (instruction) {
-  var nextInstruction = getNextInstruction(instruction)
-  var distanceAlongGeometry
-  var text
-  var modifier
-  var componentsText
   if (isLastInstruction(instruction)) {
     return []
   }
 
-  if (nextInstruction !== null) {
-    distanceAlongGeometry = instruction.distance
-    modifier = getMapboxModifier(nextInstruction.sign)
-    if (nextInstruction.street_name === '') { // Target reached is in 'text' key, not street_name
-      componentsText = nextInstruction.text
-      text = nextInstruction.text
-    } else {
-      componentsText = nextInstruction.street_name
-      text = nextInstruction.street_name
-    }
+  const nextInstruction = getNextInstruction(instruction)
+  const distanceAlongGeometry = nextInstructionExists(instruction) ? instruction.distance : 0
+  var modifier = nextInstructionExists(instruction) ? getMapboxModifier(nextInstruction.sign) : ''
+
+  var text
+  var componentsText
+  if (nextInstruction && nextInstruction.streetName === '') {
+    componentsText = nextInstruction.text
+    text = nextInstruction.text // Target reached is in 'text' key, not street_name
+  } else if (nextInstruction && nextInstruction.streetName !== '') {
+    componentsText = nextInstruction.street_name
+    text = nextInstruction.street_name
   } else {
-    distanceAlongGeometry = 0
     text = instruction.text
     modifier = ''
     componentsText = instruction.text
@@ -496,9 +398,7 @@ function addRoundaboutProperties (bannerInstruction, usedInstruction) {
 
 function convertRadianToDegree (turnAngle) {
   let degrees = turnAngle * (180 / Math.PI)
-  degrees = Math.abs(degrees)
-  degrees = Math.round(degrees)
-  return degrees
+  return Math.round(Math.abs(degrees))
 }
 
 function getSubBanner (primaryInstruction) { // primaryInstruction = instruction used for primary banner
@@ -602,10 +502,7 @@ function getTranslatedSentenceConnector () {
 }
 
 function getRouteOptions (path, accessKey) {
-  let token = accessKey
-  if (!accessKey) {
-    token = ''
-  }
+  let token = (accessKey !== undefined) ? accessKey : ''
   var routeOptions = {
     'baseUrl': 'https://api.mapbox.com',
     'user': 'mapbox',

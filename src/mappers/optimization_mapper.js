@@ -12,23 +12,18 @@ exports.getMapping = function (response) {
   return frame
 }
 
-function getWaypoints () {
-  let index = 0
-  allActivities.map(activity => {
+const getWaypoints = () =>
+  allActivities.map((activity, index) => {
     getSingleWaypoint(activity, index)
-    index++
   })
-}
 
-function getSingleWaypoint (activity, index) {
-  let wp = {
+const getSingleWaypoint = (activity, index) =>
+  ({
     'location': getLocation(activity),
     'waypoint_index': index,
     'name': getActivityName(activity),
     'trips_index': 0
-  }
-  return wp
-}
+  })
 
 function getLocation (activity) {
   let lat = activity.address.lat
@@ -51,21 +46,14 @@ function getActivityName (activity) {
   return name
 }
 
-function getTrips (solution) {
-  let trips = []
-  trips.push(getSingleTrip(solution))
-  return trips
-}
+const getTrips = (solution) => [getSingleTrip(solution)]
 
-function getSingleTrip (solution) {
-  let trip = {
-    'distance': solution.distance,
-    'duration': solution.transport_time,
-    'geometry': getGeometry(solution),
-    'legs': getLegs()
-  }
-  return trip
-}
+const getSingleTrip = (solution) => ({
+  'distance': solution.distance,
+  'duration': solution.transport_time,
+  'geometry': getGeometry(solution),
+  'legs': getLegs()
+})
 
 function getGeometry (solution) {
   let bool = isDetailedGeometry(solution)
@@ -73,11 +61,7 @@ function getGeometry (solution) {
   return poly
 }
 
-function isDetailedGeometry (solution) {
-  if (solution.routes[0].points !== undefined) {
-    return true
-  } else { return false }
-}
+const isDetailedGeometry = (solution) => (solution.routes[0].points !== undefined)
 
 function getAdaptedCoordinates (routes, detailed = false) {
   let newCoordinates = []
@@ -100,26 +84,14 @@ function getAdaptedCoordinates (routes, detailed = false) {
   return newCoordinates
 }
 
-function getLegs () {
-  let legs = []
-  allActivities.map(activity => {
-    if (activity.type === 'start') {
-    } else {
-      legs.push(getSingleLeg(activity))
-    }
-  })
-  return legs
-}
+const getLegs = () => allActivities.filter(activity => activity.type !== 'start').map(activityFiltered => getSingleLeg(activityFiltered))
 
-function getSingleLeg (activity) {
-  let leg = {
-    'summary': getSummary(activity),
-    'duration': getActivityDuration(activity),
-    'steps': [],
-    'distance': getActivityDistance(activity)
-  }
-  return leg
-}
+const getSingleLeg = (activity) => ({
+  'summary': getSummary(activity),
+  'duration': getActivityDuration(activity),
+  'steps': [],
+  'distance': getActivityDistance(activity)
+})
 
 function getSummary (activity) {
   let nextActivity = getNextActivity(activity)
