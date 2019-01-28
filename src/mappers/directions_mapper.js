@@ -1,12 +1,15 @@
 var polyline = require('@mapbox/polyline')
 
-Array.range = (start, end) => Array.from({ length: (end - start) }, (v, k) => k + start)
+Array.range = (start, end) =>
+  Array.from({ length: end - start }, (v, k) => k + start)
 
 var allInstructions
 var allCoordinates
 var allCoordinatesGEO
 var locale
 var profile
+var geometries
+
 let departAnnouncementAlreadySaid = false
 
 const UUID = generateUuid()
@@ -18,15 +21,22 @@ const VERY_CLOSE = 200
 const EXTREMELY_CLOSE = 60
 const DISTANCE_TYPES = [FAR, MID, CLOSE, VERY_CLOSE, EXTREMELY_CLOSE]
 
-exports.getMapping = function (jsonRes, _profile, _locale, mapboxKey) {
+exports.getMapping = function (
+  jsonRes,
+  _profile,
+  _locale,
+  mapboxKey,
+  _geometries
+) {
   var paths = jsonRes.paths
   locale = _locale !== undefined ? _locale : 'en'
   profile = _profile !== undefined ? _profile : 'car'
+  geometries = _geometries === 'geojson' ? 'geojson' : 'polyline6'
   var mapBoxResponse = {
-    'routes': getAllMapboxRoutes(paths, mapboxKey),
-    'waypoints': getWaypoints(paths),
-    'code': 'Ok',
-    'uuid': UUID
+    routes: getAllMapboxRoutes(paths, mapboxKey),
+    waypoints: getWaypoints(paths),
+    code: 'Ok',
+    uuid: UUID
   }
   return mapBoxResponse
 }
@@ -35,12 +45,10 @@ function getWaypoints (paths) {
   let coordinates = paths[0].snapped_waypoints.coordinates
   let firstStreet = getFirstStreetName()
   let lastStreet = getLastStreetName()
-  let waypoints = coordinates.map((coordinatePair, index) => (
-    {
-      name: index === 0 ? firstStreet : lastStreet,
-      location: coordinatePair
-    })
-  )
+  let waypoints = coordinates.map((coordinatePair, index) => ({
+    name: index === 0 ? firstStreet : lastStreet,
+    location: coordinatePair
+  }))
   return waypoints
 }
 
@@ -53,27 +61,34 @@ function getSingleMapboxRoute (path, mapboxKey) {
   allInstructions = path.instructions
   allCoordinatesGEO = path.points.coordinates // coordinates in GEOJSON format (longitude, latitude)
   allCoordinates = getAdaptedCoordinates(path.points.coordinates) // (latitude,longitude)
-  var mapBoxRoute =
-    {
-      'distance': path.distance,
-      'duration': path.time / 1000,
-      'geometry': polyline.encode(allCoordinates),
-      'weight': path.time / 1000,
-      'weight_name': 'routability',
-      'legs': getLegs(path),
-      'routeOptions': getRouteOptions(path, mapboxKey),
-      'voiceLocale': locale
-    }
+  var mapBoxRoute = {
+    distance: path.distance,
+    duration: path.time / 1000,
+    geometry:
+      geometries === 'polyline6'
+        ? polyline.encode(allCoordinates)
+        : {
+          coordinates: allCoordinatesGEO,
+          type: 'LineString'
+        }, // polyline.encode(allCoordinates),
+    weight: path.time / 1000,
+    weight_name: 'routability',
+    legs: getLegs(path),
+    routeOptions: getRouteOptions(path, mapboxKey),
+    voiceLocale: locale
+  }
   return mapBoxRoute
 }
 
 function getLegs (path) {
-  let legs = [{
-    'distance': path.distance,
-    'duration': path.time / 1000,
-    'summary': getSummary(),
-    'steps': getSteps()
-  }]
+  let legs = [
+    {
+      distance: path.distance,
+      duration: path.time / 1000,
+      summary: getSummary(),
+      steps: getSteps()
+    }
+  ]
   return legs
 }
 
@@ -90,7 +105,7 @@ function getFirstStreetName () {
 }
 
 function getLastStreetName () {
-  let index = (allInstructions.length > 1) ? allInstructions.length - 2 : 1
+  let index = allInstructions.length > 1 ? allInstructions.length - 2 : 1
   let streetName = allInstructions[index].street_name
   return streetName
 }
@@ -102,7 +117,7 @@ function getAdaptedCoordinates (coords) {
   for (index = 0, len = coords.length; index < len; ++index) {
     var pair = coords[index]
     var x = pair[1] * 10 // * 10 as a fix to use Polyline Encoding with precision 6, otherwise coordinates are off NOTE: this is only for the encoded geometry strings
-    var y = pair[0] * 10 // changing "geometries" in RouteOptions to polyline instead of polyline6, should do the same, but somehow doesnt, which is a Mapbox related problem
+    var y = pair[0] * 10
     newCoordinates[index] = [x, y]
   }
   return newCoordinates
@@ -139,28 +154,39 @@ function getMapboxModifier (sign) {
   return modifier
 }
 
-const isFirstInstruction = instruction => getPreviousInstruction(instruction, allInstructions) === null
-const isLastInstruction = instruction => getNextInstruction(instruction, allInstructions) === null
+const isFirstInstruction = instruction =>
+  getPreviousInstruction(instruction, allInstructions) === null
+const isLastInstruction = instruction =>
+  getNextInstruction(instruction, allInstructions) === null
 
 function getSteps () {
-  return allInstructions.map((instruction) => {
-    let allPointIndexes = Array.range(instruction.interval[0], instruction.interval[1] + 1)
+  let steps = allInstructions.map(instruction => {
+    let allPointIndexes = Array.range(
+      instruction.interval[0],
+      instruction.interval[1] + 1
+    )
     let sectionPoints = allPointIndexes.map(index => allCoordinates[index])
-
+    let sectionPointsGEO = allPointIndexes.map(index => allCoordinatesGEO[index])
     return {
-      'name': isLastInstruction(instruction) ? getLastStreetName() : instruction.street_name,
-      'duration': instruction.time / 1000,
-      'weight': instruction.time / 1000,
-      'distance': instruction.distance,
-      'geometry': polyline.encode(sectionPoints),
-      'driving_side': getDrivingSide(),
-      'mode': convertProfile(),
-      'maneuver': getManeuver(instruction),
-      'intersections': getIntersections(instruction),
-      'voiceInstructions': getVoiceInstructions(instruction),
-      'bannerInstructions': getBannerInstructions(instruction)
+      name: isLastInstruction(instruction)
+        ? getLastStreetName()
+        : instruction.street_name,
+      duration: instruction.time / 1000,
+      weight: instruction.time / 1000,
+      distance: instruction.distance,
+      geometry: geometries === 'polyline6' ? polyline.encode(sectionPoints) : {
+        coordinates: sectionPointsGEO,
+        type: 'LineString'
+      },
+      driving_side: getDrivingSide(),
+      mode: convertProfile(),
+      maneuver: getManeuver(instruction),
+      intersections: getIntersections(instruction),
+      voiceInstructions: getVoiceInstructions(instruction),
+      bannerInstructions: getBannerInstructions(instruction)
     }
   })
+  return steps
 }
 
 function getIntersections (instruction) {
@@ -179,20 +205,24 @@ function getIntersections (instruction) {
 
 function getSingleIntersection (coordinate, nextCoordinate) {
   return {
-    'out': 0,
-    'entry': [
-      true
+    out: 0,
+    entry: [true],
+    bearings: [
+      calculateBearing(
+        coordinate[1],
+        coordinate[0],
+        nextCoordinate[1],
+        nextCoordinate[0]
+      )
     ],
-    'bearings': [
-      calculateBearing(coordinate[1], coordinate[0], nextCoordinate[1], nextCoordinate[0])
-    ],
-    'location': coordinate
+    location: coordinate
   }
 }
 
 function hasIntersections (instruction) {
-  let numberOfInstructions = instruction.interval[1] - instruction.interval[0] - 1
-  return (numberOfInstructions > 0)
+  let numberOfInstructions =
+    instruction.interval[1] - instruction.interval[0] - 1
+  return numberOfInstructions > 0
 }
 
 function createDummyIntersection (instruction) {
@@ -202,14 +232,10 @@ function createDummyIntersection (instruction) {
     bearing = bearing - 180 // acc. to mapbox doc., substracting 180 gives the direction of driving
   }
   let intersection = {
-    'location': allCoordinatesGEO[instruction.interval[1]],
-    'out': 0,
-    'entry': [
-      true
-    ],
-    'bearings': [
-      bearing
-    ]
+    location: allCoordinatesGEO[instruction.interval[1]],
+    out: 0,
+    entry: [true],
+    bearings: [bearing]
   }
   return intersection
 }
@@ -226,26 +252,33 @@ function getManeuver (instruction) {
   let type = getType(instruction)
   switch (type) {
     case 'arrive':
-      modifier = (instruction.last_heading !== undefined) ? getDirectionOfHeading(instruction.last_heading) : getMapboxModifier(instruction.sign)
+      modifier =
+        instruction.last_heading !== undefined
+          ? getDirectionOfHeading(instruction.last_heading)
+          : getMapboxModifier(instruction.sign)
       break
     default:
       modifier = getMapboxModifier(instruction.sign)
       break
   }
   return {
-    'bearing_before': getBearingBefore(instruction),
-    'bearing_after': getBearingAfter(instruction),
-    'location': allCoordinatesGEO[instruction.interval[0]],
-    'modifier': modifier,
-    'type': type,
-    'instruction': instruction.text,
-    'exit': type === 'roundabout' ? instruction.exit_number : undefined
+    bearing_before: getBearingBefore(instruction),
+    bearing_after: getBearingAfter(instruction),
+    location: allCoordinatesGEO[instruction.interval[0]],
+    modifier: modifier,
+    type: type,
+    instruction: instruction.text,
+    exit: type === 'roundabout' ? instruction.exit_number : undefined
   }
 }
 
 function getDirectionOfHeading (angle) {
   // assumes that the 'last_heading' property has sth to do with on which side the target is
-  if (angle >= 180) { return 'left' } else { return 'right' }
+  if (angle >= 180) {
+    return 'left'
+  } else {
+    return 'right'
+  }
 }
 
 function getType (instruction) {
@@ -259,10 +292,11 @@ function getType (instruction) {
       case 4: // FINISH
       case 5: // REACHED_VIA
         return 'arrive'
-      case 6:// USE_ROUNDABOUT
+      case 6: // USE_ROUNDABOUT
         return 'roundabout'
       case -7:
-      case 7: return 'continue'
+      case 7:
+        return 'continue'
       default:
         return 'turn'
     }
@@ -271,12 +305,14 @@ function getType (instruction) {
 
 function getPreviousInstruction (instruction) {
   let index = allInstructions.indexOf(instruction)
-  return (index !== 0) ? allInstructions[index - 1] : null
+  return index !== 0 ? allInstructions[index - 1] : null
 }
 
 function getNextInstruction (instruction) {
   var index = allInstructions.indexOf(instruction)
-  return (index !== allInstructions.length - 1) ? allInstructions[index + 1] : null
+  return index !== allInstructions.length - 1
+    ? allInstructions[index + 1]
+    : null
 }
 
 function getVoiceInstructions (instruction) {
@@ -287,28 +323,48 @@ function getVoiceInstructions (instruction) {
   var distanceToNextSection = Math.floor(instruction.distance / 10) * 10
   departAnnouncementAlreadySaid = false
   if (isFirstInstruction(instruction)) {
-    voiceInstructions.push(getSingleVoiceInstruction(distanceToNextSection, instruction, false))
+    voiceInstructions.push(
+      getSingleVoiceInstruction(distanceToNextSection, instruction, false)
+    )
   }
   DISTANCE_TYPES.map(distanceType => {
     switch (distanceType) {
       case EXTREMELY_CLOSE:
         if (distanceToNextSection < EXTREMELY_CLOSE) {
           // the voice shouldnt say the distance left if the distance is < EXTREMELY_CLOSE
-          voiceInstructions.push(getSingleVoiceInstruction(distanceToNextSection, instruction, isLastInstruction(getNextInstruction(instruction))))
+          voiceInstructions.push(
+            getSingleVoiceInstruction(
+              distanceToNextSection,
+              instruction,
+              isLastInstruction(getNextInstruction(instruction))
+            )
+          )
         } else {
-          voiceInstructions.push(getSingleVoiceInstruction(EXTREMELY_CLOSE, instruction, isLastInstruction(getNextInstruction(instruction)))) //  60m before turn final announcement is made
+          voiceInstructions.push(
+            getSingleVoiceInstruction(
+              EXTREMELY_CLOSE,
+              instruction,
+              isLastInstruction(getNextInstruction(instruction))
+            )
+          ) //  60m before turn final announcement is made
         }
         break
       default:
         if (distanceToNextSection > distanceType) {
-          voiceInstructions.push(getSingleVoiceInstruction(distanceType, instruction))
+          voiceInstructions.push(
+            getSingleVoiceInstruction(distanceType, instruction)
+          )
         }
     }
   })
   return voiceInstructions
 }
 
-function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDistance = true) {
+function getSingleVoiceInstruction (
+  distanceAlongGeometry,
+  instruction,
+  sayDistance = true
+) {
   // Voice Instructions use the text of the next Manuever, so from the next instruction
   // For the very beginning of the navigation however, you need the text of the current instruction
   let spokenInstruction = getNextInstruction(instruction)
@@ -323,28 +379,53 @@ function getSingleVoiceInstruction (distanceAlongGeometry, instruction, sayDista
     announcement = spokenInstruction.text
   }
 
-  if (!sayDistance && shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)) {
+  if (
+    !sayDistance &&
+    shouldAddNextVoiceInstruction(spokenInstruction, nextInstruction)
+  ) {
     announcement += getTranslatedSentenceConnector() + nextInstruction.text
   }
   var voiceInstruction = {
-    'distanceAlongGeometry': distanceAlongGeometry,
-    'announcement': departAnnouncement + announcement,
-    'ssmlAnnouncement': getSsmlAnnouncement(distanceAlongGeometry, announcement, sayDistance, departAnnouncement)
+    distanceAlongGeometry: distanceAlongGeometry,
+    announcement: departAnnouncement + announcement,
+    ssmlAnnouncement: getSsmlAnnouncement(
+      distanceAlongGeometry,
+      announcement,
+      sayDistance,
+      departAnnouncement
+    )
   }
   return voiceInstruction
 }
 
-function getSsmlAnnouncement (distanceAlongGeometry, announcement, sayDistance, departAnnouncement) {
-  const distanceString = sayDistance ? getTranslatedDistance(distanceAlongGeometry) : ''
-  const ssml = '<speak><amazon:effect name="drc"><prosody rate="1.08">' + departAnnouncement + distanceString + announcement + ' </prosody></amazon:effect></speak>'
+function getSsmlAnnouncement (
+  distanceAlongGeometry,
+  announcement,
+  sayDistance,
+  departAnnouncement
+) {
+  const distanceString = sayDistance
+    ? getTranslatedDistance(distanceAlongGeometry)
+    : ''
+  const ssml =
+    '<speak><amazon:effect name="drc"><prosody rate="1.08">' +
+    departAnnouncement +
+    distanceString +
+    announcement +
+    ' </prosody></amazon:effect></speak>'
   return ssml
 }
 
-const shouldAddNextVoiceInstruction = (instruction, nextInstruction) => nextInstructionExists(instruction) && isStepShort(nextInstruction) && !isLastInstruction(nextInstruction)
+const shouldAddNextVoiceInstruction = (instruction, nextInstruction) =>
+  nextInstructionExists(instruction) &&
+  isStepShort(nextInstruction) &&
+  !isLastInstruction(nextInstruction)
 
-const nextInstructionExists = instruction => getNextInstruction(instruction) !== null
+const nextInstructionExists = instruction =>
+  getNextInstruction(instruction) !== null
 
-const isStepShort = (instruction) => instruction !== null && instruction.distance < EXTREMELY_CLOSE
+const isStepShort = instruction =>
+  instruction !== null && instruction.distance < EXTREMELY_CLOSE
 
 function getBannerInstructions (instruction) {
   if (isLastInstruction(instruction)) {
@@ -352,8 +433,12 @@ function getBannerInstructions (instruction) {
   }
 
   const nextInstruction = getNextInstruction(instruction)
-  const distanceAlongGeometry = nextInstructionExists(instruction) ? instruction.distance : 0
-  var modifier = nextInstructionExists(instruction) ? getMapboxModifier(nextInstruction.sign) : ''
+  const distanceAlongGeometry = nextInstructionExists(instruction)
+    ? instruction.distance
+    : 0
+  var modifier = nextInstructionExists(instruction)
+    ? getMapboxModifier(nextInstruction.sign)
+    : ''
 
   var text
   var componentsText
@@ -369,19 +454,26 @@ function getBannerInstructions (instruction) {
     componentsText = instruction.text
   }
   var bannerInstruction = {
-    'distanceAlongGeometry': distanceAlongGeometry,
-    'primary': {
-      'text': text,
-      'type': getType(nextInstruction),
-      'modifier': modifier,
-      'components': [{ 'text': componentsText, 'type': 'text' }],
-      'secondary': null
+    distanceAlongGeometry: distanceAlongGeometry,
+    primary: {
+      text: text,
+      type: getType(nextInstruction),
+      modifier: modifier,
+      components: [{ text: componentsText, type: 'text' }],
+      secondary: null
     }
   }
   if (getType(nextInstruction) === 'roundabout') {
-    bannerInstruction = addRoundaboutProperties(bannerInstruction, nextInstruction)
+    bannerInstruction = addRoundaboutProperties(
+      bannerInstruction,
+      nextInstruction
+    )
   }
-  if (nextInstructionExists(nextInstruction) && isStepShort(getNextInstruction(nextInstruction))) { // adds a sub banner if the next step is really short
+  if (
+    nextInstructionExists(nextInstruction) &&
+    isStepShort(getNextInstruction(nextInstruction))
+  ) {
+    // adds a sub banner if the next step is really short
     var sub = getSubBanner(nextInstruction)
     bannerInstruction['sub'] = sub
   }
@@ -401,14 +493,15 @@ function convertRadianToDegree (turnAngle) {
   return Math.round(Math.abs(degrees))
 }
 
-function getSubBanner (primaryInstruction) { // primaryInstruction = instruction used for primary banner
+function getSubBanner (primaryInstruction) {
+  // primaryInstruction = instruction used for primary banner
   // not working as of yet, sub info gets ignored
   var instructionAfter = getNextInstruction(primaryInstruction)
   var sub = {
-    'text': instructionAfter.street_name,
-    'type': getType(primaryInstruction),
-    'modifier': getMapboxModifier(instructionAfter.sign),
-    'components': [{ 'text': instructionAfter.street_name, 'type': 'text' }]
+    text: instructionAfter.street_name,
+    type: getType(primaryInstruction),
+    modifier: getMapboxModifier(instructionAfter.sign),
+    components: [{ text: instructionAfter.street_name, type: 'text' }]
   }
   return sub
 }
@@ -439,10 +532,15 @@ function getBearingBefore (instruction) {
     var bearingBfP1 = allCoordinatesGEO[instruction.interval[0]]
     var bearingBfP2 = allCoordinatesGEO[instruction.interval[1]]
     if (hasIntersections(instruction)) {
-    // this results in a more accurate bearing, as the intersection is closer to the maneuever
+      // this results in a more accurate bearing, as the intersection is closer to the maneuever
       bearingBfP1 = allCoordinatesGEO[instruction.interval[1] - 1] // the last intersection before the Manuever
     }
-    var bearingBf = calculateBearing(bearingBfP1[0], bearingBfP1[1], bearingBfP2[0], bearingBfP2[1])
+    var bearingBf = calculateBearing(
+      bearingBfP1[0],
+      bearingBfP1[1],
+      bearingBfP2[0],
+      bearingBfP2[1]
+    )
     return bearingBf
   }
 }
@@ -453,7 +551,12 @@ function getBearingAfter (nextInstruction) {
   if (hasIntersections(nextInstruction)) {
     bearingAfP2 = allCoordinatesGEO[nextInstruction.interval[0] + 1]
   }
-  var bearingAf = calculateBearing(bearingAfP1[1], bearingAfP1[0], bearingAfP2[1], bearingAfP2[0])
+  var bearingAf = calculateBearing(
+    bearingAfP1[1],
+    bearingAfP1[0],
+    bearingAfP2[1],
+    bearingAfP2[0]
+  )
   return bearingAf
 }
 
@@ -472,14 +575,17 @@ function getLastBearingOfPreviousInstruction (instruction) {
 
 function generateUuid () {
   var id = ''
-  var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  for (var i = 0; i < 25; i++) { id += possible.charAt(Math.floor(Math.random() * possible.length)) }
+  var possible =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  for (var i = 0; i < 25; i++) {
+    id += possible.charAt(Math.floor(Math.random() * possible.length))
+  }
   return id
 }
 
 function getTranslatedDistance (distance) {
-  let kilometres = { 'de': 'Kilometern', 'en': 'kilometres' }
-  let metres = { 'de': 'Metern', 'en': 'metres' }
+  let kilometres = { de: 'Kilometern', en: 'kilometres' }
+  let metres = { de: 'Metern', en: 'metres' }
   var unit = 'Metern' // default
   let convertedDistance
   if (distance / 1000 >= 1) {
@@ -495,32 +601,34 @@ function getTranslatedDistance (distance) {
 
 function getTranslatedSentenceConnector () {
   switch (locale) {
-    case 'de': return ', dann '
+    case 'de':
+      return ', dann '
     case 'en':
-    case 'en-us': return ', then '
+    case 'en-us':
+      return ', then '
   }
 }
 
 function getRouteOptions (path, accessKey) {
-  let token = (accessKey !== undefined) ? accessKey : ''
+  let token = accessKey !== undefined ? accessKey : ''
   var routeOptions = {
-    'baseUrl': 'https://api.mapbox.com',
-    'user': 'mapbox',
-    'profile': convertProfile(),
-    'coordinates': path.snapped_waypoints.coordinates,
-    'language': locale,
-    'bearings': ';',
-    'continueStraight': true,
-    'roundaboutExits': true,
-    'geometries': 'polyline6',
-    'overview': 'full',
-    'steps': true,
-    'annotations': '',
-    'voiceInstructions': true,
-    'bannerInstructions': true,
-    'voiceUnits': getUnitSystem(),
-    'accessToken': token,
-    'requestUuid': UUID
+    baseUrl: 'https://api.mapbox.com',
+    user: 'mapbox',
+    profile: convertProfile(),
+    coordinates: path.snapped_waypoints.coordinates,
+    language: locale,
+    bearings: ';',
+    continueStraight: true,
+    roundaboutExits: true,
+    geometries: geometries,
+    overview: 'full',
+    steps: true,
+    annotations: '',
+    voiceInstructions: true,
+    bannerInstructions: true,
+    voiceUnits: getUnitSystem(),
+    accessToken: token,
+    requestUuid: UUID
   }
   return routeOptions
 }
@@ -529,19 +637,21 @@ function getUnitSystem () {
   let system
   switch (locale) {
     case 'en':
-    case 'en-us': system = 'imperial'
+    case 'en-us':
+      system = 'imperial'
       break
-    default: system = 'metric'
+    default:
+      system = 'metric'
   }
   return system
 }
 
 function toRadians (degrees) {
-  return degrees * Math.PI / 180
+  return (degrees * Math.PI) / 180
 }
 
 function toDegrees (radians) {
-  return radians * 180 / Math.PI
+  return (radians * 180) / Math.PI
 }
 
 function calculateBearing (startLat, startLng, destLat, destLng) {
@@ -551,8 +661,12 @@ function calculateBearing (startLat, startLng, destLat, destLng) {
   const destLngRad = toRadians(destLng)
 
   const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad)
-  const x = Math.cos(startLatRad) * Math.sin(destLatRad) - Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad)
+  const x =
+    Math.cos(startLatRad) * Math.sin(destLatRad) -
+    Math.sin(startLatRad) *
+      Math.cos(destLatRad) *
+      Math.cos(destLngRad - startLngRad)
   let brng = Math.atan2(y, x)
   brng = toDegrees(brng)
-  return (((brng + 360) % 360) | 0)
+  return (brng + 360) % 360 | 0
 }

@@ -60,7 +60,7 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
         logError(msg)
         return data
       }
-      var mapBoxResponse = directionsMapper.getMapping(data, userReq.query.profile, userReq.query.locale, userReq.query.mapboxkey)
+      var mapBoxResponse = directionsMapper.getMapping(data, userReq.query.profile, userReq.query.locale, userReq.query.mapboxkey, userReq.query.geometries)
       log.info(SUCC_MSG)
       return JSON.stringify(mapBoxResponse)
     }
