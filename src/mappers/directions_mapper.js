@@ -20,8 +20,8 @@ const DISTANCE_TYPES = [FAR, MID, CLOSE, VERY_CLOSE, EXTREMELY_CLOSE]
 
 exports.getMapping = function (jsonRes, _profile, _locale, mapboxKey) {
   var paths = jsonRes.paths
-  locale = _locale
-  profile = _profile
+  locale = _locale !== undefined ? _locale : 'en'
+  profile = _profile !== undefined ? _profile : 'car'
   var mapBoxResponse = {
     'routes': getAllMapboxRoutes(paths, mapboxKey),
     'waypoints': getWaypoints(paths),
@@ -203,7 +203,7 @@ function createDummyIntersection (instruction) {
   }
   let intersection = {
     'location': allCoordinatesGEO[instruction.interval[1]],
-    'in': 0,
+    'out': 0,
     'entry': [
       true
     ],

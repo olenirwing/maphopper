@@ -125,5 +125,5 @@ proxyService.use('/api/1/matrix', proxy(GH_BASE, {
     }
   }
 }))
-log.info('Listening on port ' + port)
+
 proxyService.listen(port)
