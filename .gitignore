@@ -2,7 +2,7 @@
 # Created by https://www.gitignore.io/api/node
 
 # Testing Folder
-testing/
+tests/
 
 ### Node ###
 # Logs

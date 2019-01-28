@@ -60,7 +60,7 @@ proxyService.use('/api/1/route', proxy(GH_BASE, {
         logError(msg)
         return data
       }
-      var mapBoxResponse = directionsMapper.getMapping(data, userReq.query.profile, userReq.query.locale, userReq.query.mapboxkey)
+      var mapBoxResponse = directionsMapper.getMapping(data, userReq.query.profile, userReq.query.locale, userReq.query.mapboxkey, userReq.query.geometries)
       log.info(SUCC_MSG)
       return JSON.stringify(mapBoxResponse)
     }
@@ -125,5 +125,5 @@ proxyService.use('/api/1/matrix', proxy(GH_BASE, {
     }
   }
 }))
-log.info('Listening on port ' + port)
+
 proxyService.listen(port)

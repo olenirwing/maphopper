@@ -13,9 +13,7 @@ exports.getMapping = function (response) {
 }
 
 const getWaypoints = () =>
-  allActivities.map((activity, index) => {
-    getSingleWaypoint(activity, index)
-  })
+  allActivities.map((activity, index) => getSingleWaypoint(activity, index))
 
 const getSingleWaypoint = (activity, index) =>
   ({
@@ -32,17 +30,7 @@ function getLocation (activity) {
 }
 
 function getActivityName (activity) {
-  let name
-  try {
-    if (activity.name !== undefined) {
-      name = activity.name
-    } else {
-      name = activity.location_id
-    }
-  } catch (e) {
-    name = ''
-  }
-
+  let name = activity.name !== undefined ? activity.name : activity.location_id
   return name
 }
 
@@ -73,12 +61,9 @@ function getAdaptedCoordinates (routes, detailed = false) {
       })
     })
   } else {
-    allActivities.map(activity => {
-      let pair
-      let newPair
-      pair = getLocation(activity)
-      newPair = [pair[1], pair[0]]
-      newCoordinates.push(newPair)
+    newCoordinates = allActivities.map(activity => {
+      let pair = getLocation(activity)
+      return [pair[1], pair[0]]
     })
   }
   return newCoordinates

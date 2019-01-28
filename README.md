@@ -31,7 +31,12 @@ The endpoint is the same: `.../api/[version]/...`
 
 ### Parameters
 The parameters which are needed to convert to a Mapbox Directions API Response are: min. 2x `point`, `vehicle`, `key`, `points_encoded=false`, and `locale`.
-Optionally, you can pass `algorithm=alternative_route`to get multiple routes in your response. If you choose to do that, make sure you also pass `ch.disable=true`.
+
+#### Optional:
+
+`algorithm=alternative_route`to get multiple routes in your response. If you choose to do that, make sure you also pass `ch.disable=true`.
+
+`geometries="geojson"` to change the format of the geometry to geojson. The default is polyline6 encoding ([See Mapbox Doc](https://docs.mapbox.com/api/navigation/#retrieve-directions)).
 
 You can pass a Mapbox-Access-Token along your inital request, which will be used in the `RouteOptions` of the response. This can be be helpful if you are using the Mapbox SDK and you want to use other Mapbox services other than navigation. (The Mapbox Navigation SDK also uses this token while navigating when it is rerouting you, unless you change the OffRouteListener.)
 The parameter for this is `mapboxkey`. By default it will be left blank.
