@@ -1,9 +1,11 @@
+const bunyan = require('bunyan')
 const express = require('express')
+const helmet = require('helmet')
 const proxy = require('express-http-proxy')
 const proxyService = express()
-const helmet = require('helmet')
 const Prometheus = require('./src/prometheus')
-const port = 3000
+
+const PORT = 8082
 
 const directionsMapper = require('./src/mappers/directions_mapper')
 const isoMapper = require('./src/mappers/isochrone_mapper')
@@ -13,7 +15,6 @@ const matrixMapper = require('./src/mappers/matrix_mapper')
 const GH_BASE = 'https://graphhopper.com'
 const SUCC_MSG = 'Succesful Mapping'
 
-const bunyan = require('bunyan')
 let loggerOptions = { name: 'maphopper' }
 var log = bunyan.createLogger(loggerOptions)
 
@@ -27,7 +28,7 @@ Prometheus.injectMetricsRoute(proxyService)
 Prometheus.startCollection()
 
 function logProxyMessage (url) {
-  log.info('request proxied to ' + GH_BASE)
+  log.info(url + ' : request proxied to ' + GH_BASE)
 }
 
 function logError (msg, errorCode = 0) {
@@ -126,4 +127,5 @@ proxyService.use('/api/1/matrix', proxy(GH_BASE, {
   }
 }))
 
-proxyService.listen(port)
+log.info("Maphopper is running...")
+proxyService.listen(PORT)

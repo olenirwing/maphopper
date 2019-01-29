@@ -20,7 +20,7 @@ Pull the docker container:
 `docker pull gadda27/maphopper`
 
 Run the docker container at your preferred port:
-`docker run -p 3000:[PORT] -d gadda27/maphopper`
+`docker run -p [PORT]:8082 -d gadda27/maphopper`
 
 ### Requests
 Use the same syntax for requests that you use for [Graphhopper Directions API Requests](https://graphhopper.com/api/1/docs/).
