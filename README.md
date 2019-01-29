@@ -3,7 +3,7 @@ maphopper is a proxy written in node.js to use Graphhopper Directions API respon
 
 It modifies the response you get from the Graphhoppper API and returns a fully functional Mapbox API response in JSON format. ([Mapbox Directions API Documentation](https://www.mapbox.com/api-documentation/?language=cURL#directions))
 
-<i>available as a <a href="https://hub.docker.com/r/gadda27/maphopper/">Docker container</a> at "gadda27/maphopper".</i>
+<i>available as a <a href="https://hub.docker.com/r/droidsolutions/maphopper/">Docker container</a> at "droidsolutions/maphopper".</i>
 ## Supported APIs
 
 ##### Graphhopper Routing API => Mapbox Directions API
@@ -17,10 +17,10 @@ It modifies the response you get from the Graphhoppper API and returns a fully f
 ### Usage
 
 Pull the docker container:
-`docker pull gadda27/maphopper`
+`docker pull droidsolutions/maphopper`
 
 Run the docker container at your preferred port:
-`docker run -p [PORT]:8082 -d gadda27/maphopper`
+`docker run -p [PORT]:8082 -d droidsolutions/maphopper`
 
 ### Requests
 Use the same syntax for requests that you use for [Graphhopper Directions API Requests](https://graphhopper.com/api/1/docs/).
@@ -47,6 +47,8 @@ The parameter for this is `mapboxkey`. By default it will be left blank.
 
 `http://localhost:3000/api/1/route?point=40.72,-74&vehicle=car&locale=en&key=[GH_ACCESSTOKEN]&points_encoded=false&point=40.733,-73.989&mapboxkey=[MB_ACCESS_TOKEN]`
 
+_[further documentation](/documentation/routing.pdf)_
+
 ## Route Optimization API
 
 The proxy takes your previously posted problem.json and if the processing at Graphhopper is finished, it will convert it to a Mapbox Optimization Response. 
@@ -62,6 +64,9 @@ Step-by-step instructions in the Mabpbox Response are not supported, as there is
 To get your solution from Graphhopper via the proxy (deployed locally):
 
 `http://localhost:3000/api/1/vrp/solution/[RETURNED_JOB_ID]?key=[GH_ACCESSTOKEN]`
+
+_[further documentation](/documentation/optimization.pdf)_
+
 
 ## Isochrone API
 
@@ -89,6 +94,8 @@ returns polygons with time limits of: 100, 200, 300, 400
 ### Example Request
 `http://localhost:3000/api/1/isochrone?point=51.131108,12.414551&key=[GH_ACCESSKEY]&debug=true&time_limit=600&buckets=4`
 
+_[further documentation](/documentation/isochrone.pdf)_
+
 
 ## Matrix API
 
@@ -104,5 +111,6 @@ All other official parameters are supported.
 ### Example Request
 `http://localhost:3000/api/1/matrix?type=json&vehicle=car&debug=true&out_array=times&out_array=distances&key=[GH_ACCESSKEY]&from_point=49.932707,11.588051&to_point=50.118817,11.983337&from_point=50.241935,10.747375&to_point=50.118817,11.9834`
 
+_[further documentation](/documentation/matrix.pdf)_
 
 
