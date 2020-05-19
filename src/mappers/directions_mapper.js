@@ -19,7 +19,22 @@ const MID = 1000
 const CLOSE = 400
 const VERY_CLOSE = 200
 const EXTREMELY_CLOSE = 60
-const DISTANCE_TYPES = [FAR, MID, CLOSE, VERY_CLOSE, EXTREMELY_CLOSE]
+const DISTANCE_TYPES_METRIC = [FAR, MID, CLOSE, VERY_CLOSE, EXTREMELY_CLOSE]
+
+const FAR_IMPERIAL = 1609.34; // mile
+const MID_IMPERIAL = 804.67; // half-mile
+const CLOSE_IMPERIAL = 304.7999; // 1,000 feet
+const VERY_CLOSE_IMPERIAL = 152.3999; // 500 feet
+const EXTREMELY_CLOSE_IMPERIAL = 60.9599; // 200 feet
+const DISTANCE_TYPES_IMPERIAL = [
+  FAR_IMPERIAL,
+  MID_IMPERIAL,
+  CLOSE_IMPERIAL,
+  VERY_CLOSE_IMPERIAL,
+  EXTREMELY_CLOSE_IMPERIAL,
+];
+
+const DISTANCE_TYPES = {metric: DISTANCE_TYPES_METRIC, imperial: DISTANCE_TYPES_IMPERIAL}
 
 exports.getMapping = function (
   jsonRes,
@@ -315,6 +330,19 @@ function getNextInstruction (instruction) {
     : null
 }
 
+function metricOrImperial(locale) {
+  switch(locale.toLowerCase) {
+    case "en-us": // United States
+      return "imperial"
+    case "my_mm": // Myanmar
+      return "imperial"
+    case "en_lr": // Liberia
+      return "imperial"
+    default:
+      return "metric"
+  }
+}
+
 function getVoiceInstructions (instruction) {
   var voiceInstructions = []
   if (isLastInstruction(instruction)) {
@@ -327,7 +355,7 @@ function getVoiceInstructions (instruction) {
       getSingleVoiceInstruction(distanceToNextSection, instruction, false)
     )
   }
-  DISTANCE_TYPES.map(distanceType => {
+  DISTANCE_TYPES[metricOrImperial(locale)].map(distanceType => {
     switch (distanceType) {
       case EXTREMELY_CLOSE:
         if (distanceToNextSection < EXTREMELY_CLOSE) {
@@ -583,17 +611,35 @@ function generateUuid () {
   return id
 }
 
+function metersToRoundedMiles(meters) {
+  return Math.round(meters / 1609.34 * 10) / 10
+}
+
+function metersToRoundedFeet(meters) {
+  return Math.round(meters * 3.28084)
+}
+
 function getTranslatedDistance (distance) {
   let kilometres = { de: 'Kilometern', en: 'kilometres' }
   let metres = { de: 'Metern', en: 'metres' }
   var unit = 'Metern' // default
   let convertedDistance
-  if (distance / 1000 >= 1) {
-    unit = kilometres[locale]
-    convertedDistance = distance / 1000
+  if (metricOrImperial(locale) == "metric") {
+    if (distance / 1000 >= 1) {
+      unit = kilometres[locale]
+      convertedDistance = distance / 1000
+    } else {
+      convertedDistance = distance
+      unit = metres[locale]
+    }
   } else {
-    convertedDistance = distance
-    unit = metres[locale]
+    if (distance / 800 >= 1) {
+      unit = 'mile'
+      convertedDistance = metersToRoundedMiles(distance)
+    } else {
+      unit = 'feet'
+      convertedDistance = metersToRoundedFeet(distance)
+    }
   }
   let output = 'In ' + convertedDistance + unit + ' '
   return output
